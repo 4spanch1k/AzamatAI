@@ -7,11 +7,7 @@ interface DashboardHeroProps {
   title: string;
   description: string;
   primaryActionLabel: string;
-  secondaryActionLabel: string;
-  helperLabel: string;
-  helperText: string;
   onPrimaryAction: () => void;
-  onSecondaryAction: () => void;
 }
 
 export function DashboardHero({
@@ -19,11 +15,7 @@ export function DashboardHero({
   title,
   description,
   primaryActionLabel,
-  secondaryActionLabel,
-  helperLabel,
-  helperText,
   onPrimaryAction,
-  onSecondaryAction,
 }: DashboardHeroProps) {
   return (
     <section className={styles.hero}>
@@ -39,14 +31,6 @@ export function DashboardHero({
 
       <div className={styles.actions}>
         <Button onClick={onPrimaryAction}>{primaryActionLabel}</Button>
-        <Button variant="ghost" onClick={onSecondaryAction}>
-          {secondaryActionLabel}
-        </Button>
-      </div>
-
-      <div className={styles.helper}>
-        <span className={styles.helperLabel}>{helperLabel}</span>
-        <p>{helperText}</p>
       </div>
     </section>
   );

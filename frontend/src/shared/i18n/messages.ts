@@ -93,26 +93,10 @@ export const translations = {
       description:
         'Разбирайте документы, проверяйте кредиты, проходите eGov и сканируйте вакансии с понятными следующими шагами.',
       primaryAction: 'Анализировать документ',
-      secondaryAction: 'Проверить кредит',
-      helperLabel: 'AI-анализ',
-      helperText: 'Начните с документа или выберите нужный модуль ниже.',
-      quickStartLabel: 'Быстрый старт',
-      quickStartTitle: 'Откройте частую задачу',
-      quickStartDescription: 'Самые частые сценарии доступны в один клик.',
-      quickActions: {
-        loan: 'Проверить кредит',
-        job: 'Сканировать вакансию',
-      },
-      quickStartNote: 'В каждом модуле есть демо-пример для быстрого старта.',
       toolsLabel: 'Модули',
       toolsTitle: 'Выберите инструмент',
       toolsDescription: 'Каждый модуль даёт короткий вывод, риски и понятное действие.',
       openWorkspace: 'Открыть',
-      onboardingLabel: 'Демо',
-      onboardingTitle: 'Не знаете, с чего начать?',
-      onboardingDescription:
-        'Откройте декодер документов или любой модуль ниже. Внутри уже есть демо-данные для быстрого просмотра результата.',
-      onboardingAction: 'Открыть декодер документов',
       modules: {
         'document-decoder': {
           title: 'Декодер документов',
@@ -452,26 +436,10 @@ export const translations = {
       description:
         'Құжаттарды түсіндіріңіз, несиені тексеріңіз, eGov бағытын табыңыз және вакансияны келесі қадаммен бірге бағалаңыз.',
       primaryAction: 'Құжатты талдау',
-      secondaryAction: 'Несиені тексеру',
-      helperLabel: 'AI талдауы',
-      helperText: 'Құжаттан бастаңыз немесе төменнен керекті модульді таңдаңыз.',
-      quickStartLabel: 'Жылдам бастау',
-      quickStartTitle: 'Жиі міндетті бірден ашыңыз',
-      quickStartDescription: 'Екі негізгі сценарий бір шерту арқылы қолжетімді.',
-      quickActions: {
-        loan: 'Несиені тексеру',
-        job: 'Вакансияны сканерлеу',
-      },
-      quickStartNote: 'Әр модульде жылдам бастауға арналған демо-мысал бар.',
       toolsLabel: 'Модульдер',
       toolsTitle: 'Құралды таңдаңыз',
       toolsDescription: 'Әр модуль қысқа қорытынды, тәуекел және келесі әрекет береді.',
       openWorkspace: 'Ашу',
-      onboardingLabel: 'Демо',
-      onboardingTitle: 'Қайдан бастау керегін білмей тұрсыз ба?',
-      onboardingDescription:
-        'Құжат талдағышын немесе төмендегі кез келген модульді ашыңыз. Ішінде нәтижені тез көруге арналған демо-деректер бар.',
-      onboardingAction: 'Құжат талдағышын ашу',
       modules: {
         'document-decoder': {
           title: 'Құжат талдағыш',
