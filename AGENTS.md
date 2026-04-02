@@ -8,6 +8,14 @@ Before starting any coding task in this repository, review these documents:
 
 If a task touches frontend code, treat both documents as baseline project rules unless the user explicitly overrides them in the current request.
 
+## Mandatory Pre-Change Verification
+
+Before editing code, run the relevant existing checks for the area you are about to change.
+
+- For frontend work in `frontend/`, run available validation commands first.
+- Prefer this order when available: `npm run test` and then `npm run build`.
+- After edits, rerun the same checks before committing.
+
 ## Frontend Defaults
 
 - Do not use Tailwind for this project.

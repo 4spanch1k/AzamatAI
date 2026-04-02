@@ -1,26 +1,13 @@
 import { Menu } from 'lucide-react';
 import { useAuth } from '@/features/auth/model/AuthContext';
 import { useLanguage } from '@/shared/i18n/LanguageProvider';
+import { getDashboardRouteTitle } from '@/shared/lib/dashboardRouteTitle';
 import { LanguageSwitch } from '@/shared/ui/LanguageSwitch';
 import styles from './TopBar.module.css';
-
-const routeTitleMap = {
-  '/dashboard': 'dashboard',
-  '/dashboard/document-decoder': 'document-decoder',
-  '/dashboard/egov-navigator': 'egov-navigator',
-  '/dashboard/loan-analyzer': 'loan-analyzer',
-  '/dashboard/job-offer-scanner': 'job-offer-scanner',
-} as const;
-
-type DashboardRouteKey = (typeof routeTitleMap)[keyof typeof routeTitleMap];
 
 interface TopBarProps {
   currentPath: string;
   onMenuClick?: () => void;
-}
-
-export function getDashboardRouteTitle(pathname: string) {
-  return (routeTitleMap[pathname as keyof typeof routeTitleMap] ?? 'dashboard') as DashboardRouteKey;
 }
 
 export function TopBar({ currentPath, onMenuClick }: TopBarProps) {
