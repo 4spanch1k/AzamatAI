@@ -1,3 +1,7 @@
 frontend/node_modules
 frontend/dist
 *.log
+backend/.env
+backend/.venv
+backend/.pytest_cache
+**/__pycache__
