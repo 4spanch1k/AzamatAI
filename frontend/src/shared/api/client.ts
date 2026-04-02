@@ -69,6 +69,10 @@ async function parseJsonBody(response: Response) {
   }
 }
 
+function isResponsePayloadObject(payload: unknown): payload is Record<string, unknown> {
+  return Boolean(payload) && typeof payload === 'object' && !Array.isArray(payload);
+}
+
 export class ApiError extends Error {
   status: number;
   details: unknown;
@@ -105,6 +109,9 @@ export async function requestJson<TResponse>(path: string, options: RequestJsonO
     if (!response.ok) {
       throw new ApiError(response.status, extractErrorMessage(payload), payload);
     }
+    if (!isResponsePayloadObject(payload)) {
+      throw new ApiError(response.status, GENERIC_API_ERROR, payload);
+    }
 
     return payload as TResponse;
   } catch (error) {
@@ -117,9 +124,5 @@ export async function requestJson<TResponse>(path: string, options: RequestJsonO
 }
 
 export function getApiErrorMessage(error: unknown, fallbackMessage: string) {
-  if (error instanceof ApiError && error.status > 0 && error.status < 500 && error.message !== GENERIC_API_ERROR) {
-    return error.message;
-  }
-
   return fallbackMessage;
 }

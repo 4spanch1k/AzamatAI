@@ -49,6 +49,24 @@ describe('requestJson', () => {
     });
   });
 
+  it('raises ApiError when a successful response payload is malformed', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response('not-json-object', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    );
+
+    await expect(requestJson('/api/document-decode', { method: 'POST', body: { text: 'valid enough text payload' } })).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 200,
+      message: 'Request failed.',
+    });
+  });
+
   it('extracts the first validation message from FastAPI detail arrays', async () => {
     vi.stubGlobal(
       'fetch',
@@ -74,10 +92,10 @@ describe('requestJson', () => {
 });
 
 describe('getApiErrorMessage', () => {
-  it('returns backend validation messages for client-side errors', () => {
+  it('returns the localized fallback for client-side errors', () => {
     const error = new ApiError(422, 'Input is too short.');
 
-    expect(getApiErrorMessage(error, 'Fallback message')).toBe('Input is too short.');
+    expect(getApiErrorMessage(error, 'Fallback message')).toBe('Fallback message');
   });
 
   it('falls back to localized copy for server-side failures', () => {
