@@ -20,7 +20,7 @@ const features = [
   {
     icon: Briefcase,
     label: 'Job Scanner',
-    desc: 'Detect scam offers before it's too late',
+    desc: "Detect scam offers before it's too late",
   },
 ];
 

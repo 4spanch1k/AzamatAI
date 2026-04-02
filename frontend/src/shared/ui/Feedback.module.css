@@ -1,0 +1,62 @@
+.state {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  padding: var(--space-8);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.centered {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-8);
+}
+
+.state h2,
+.state h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+}
+
+.state p {
+  margin: 0;
+  color: var(--color-text-soft);
+  max-width: 32rem;
+}
+
+.indicator {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 3px solid rgba(11, 164, 191, 0.18);
+  border-top-color: var(--color-primary);
+  animation: spin 1s linear infinite;
+}
+
+.alert {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: rgba(214, 77, 97, 0.08);
+  border: 1px solid rgba(214, 77, 97, 0.2);
+}
+
+.alert strong {
+  font-size: 0.94rem;
+}
+
+.alert p {
+  margin: 0;
+  color: var(--color-text-soft);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

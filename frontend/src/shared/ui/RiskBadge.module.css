@@ -1,0 +1,30 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.42rem 0.72rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.low {
+  background: var(--risk-low-bg);
+  color: var(--risk-low-text);
+}
+
+.medium {
+  background: var(--risk-medium-bg);
+  color: var(--risk-medium-text);
+}
+
+.high {
+  background: var(--risk-high-bg);
+  color: var(--risk-high-text);
+}
+
+.neutral {
+  background: rgba(59, 125, 221, 0.14);
+  color: #2f67b6;
+}

@@ -1,0 +1,256 @@
+.page {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.header {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--tone-solid);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.headingBlock {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.headingBlock h1 {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: clamp(2rem, 4vw, 3.1rem);
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+}
+
+.headingBlock p {
+  margin: 0;
+  color: var(--color-text-soft);
+  max-width: 42rem;
+}
+
+.toneBadge {
+  padding: 0.5rem 0.8rem;
+  border-radius: var(--radius-pill);
+  background: var(--tone-soft);
+  color: var(--tone-solid);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.panel {
+  padding: var(--space-5);
+}
+
+.panelBody {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.callout {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--tone-border);
+  background: linear-gradient(135deg, var(--tone-soft), rgba(255, 255, 255, 0.92));
+}
+
+.callout strong {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: 0.92rem;
+}
+
+.callout p,
+.muted {
+  margin: 0;
+  color: var(--color-text-soft);
+}
+
+.gridTwo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.metricCard {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--color-border);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.metricLabel {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.metricValue {
+  font-size: clamp(1.35rem, 4vw, 2.25rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.list,
+.warningStack {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.listItem,
+.warningItem {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.listMarker,
+.numberIndex {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--tone-soft);
+  color: var(--tone-solid);
+  font-size: 0.82rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.numberedList {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.numberItem {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.numberBody {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.numberBody strong {
+  font-size: 0.96rem;
+}
+
+.numberBody p {
+  margin: 0;
+  color: var(--color-text-soft);
+}
+
+.progressTrack {
+  width: 100%;
+  height: 0.6rem;
+  border-radius: var(--radius-pill);
+  background: rgba(16, 32, 51, 0.08);
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--tone-solid), rgba(255, 255, 255, 0.4));
+}
+
+.keyValueList {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.keyValueRow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.keyValueRow:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.keyValueRow span:first-child {
+  color: var(--color-text-soft);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip {
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-soft);
+}
+
+.chipActive {
+  border-color: var(--tone-border);
+  color: var(--tone-solid);
+  background: var(--tone-soft);
+}
+
+.uploadZone {
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--tone-border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), var(--tone-soft));
+  display: grid;
+  gap: var(--space-2);
+}
+
+.uploadZone strong {
+  font-size: 0.96rem;
+}
+
+.footerNote {
+  color: var(--color-text-muted);
+  font-size: 0.86rem;
+}
+
+@media (max-width: 720px) {
+  .gridTwo {
+    grid-template-columns: 1fr;
+  }
+}

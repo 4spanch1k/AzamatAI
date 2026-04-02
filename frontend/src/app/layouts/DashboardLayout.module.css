@@ -1,0 +1,58 @@
+.shell {
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+.desktopSidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  width: var(--sidebar-width);
+  height: 100vh;
+}
+
+.main {
+  min-height: 100vh;
+  margin-left: var(--sidebar-width);
+  min-width: 0;
+  display: grid;
+  grid-template-rows: var(--topbar-height) minmax(0, 1fr);
+}
+
+.workspace {
+  min-width: 0;
+  height: calc(100vh - var(--topbar-height));
+  padding: var(--space-6);
+  overflow-y: auto;
+}
+
+.mobileOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  display: block;
+  background: var(--color-overlay);
+}
+
+.mobileSidebar {
+  width: min(88vw, var(--sidebar-width));
+  height: 100%;
+  background: var(--color-surface-strong);
+}
+
+@media (max-width: 1080px) {
+  .desktopSidebar {
+    display: none;
+  }
+
+  .main {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .workspace {
+    padding: var(--space-4);
+  }
+}
