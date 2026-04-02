@@ -11,6 +11,7 @@ import { LoadingState } from '@/shared/ui/LoadingState';
 import sharedStyles from '@/shared/ui/ModulePage.module.css';
 import { ResultSection } from '@/shared/ui/ResultSection';
 import { RiskBadge } from '@/shared/ui/RiskBadge';
+import { ResultMeta } from '@/shared/ui/ResultMeta';
 import { SplitWorkspace } from '@/shared/ui/SplitWorkspace';
 import { Surface } from '@/shared/ui/Surface';
 import { TextAreaField } from '@/shared/ui/TextAreaField';
@@ -28,6 +29,8 @@ export function JobOfferScannerView() {
   const [error, setError] = useState('');
   const [result, setResult] = useState<JobScanResult | null>(null);
   const isLoading = status === 'loading';
+  const isRequestError = error === messages.common.requestFailed;
+  const resultMeta = `${messages.common.resultReady} · ${messages.common.generatedNow}`;
 
   const scan = async (source: string) => {
     if (isLoading) {
@@ -142,7 +145,14 @@ export function JobOfferScannerView() {
         }
         right={
           <>
-            {error && <ErrorAlert message={error} />}
+            {error && (
+              <ErrorAlert
+                actionLabel={isRequestError ? messages.common.retryAction : undefined}
+                hint={isRequestError ? messages.common.retryHint : undefined}
+                message={error}
+                onAction={isRequestError ? () => void scan(jobText) : undefined}
+              />
+            )}
             {status === 'idle' && !result && (
               <EmptyState
                 eyebrow={copy.emptyEyebrow}
@@ -152,11 +162,12 @@ export function JobOfferScannerView() {
               />
             )}
             {status === 'loading' && (
-              <LoadingState title={copy.loadingTitle} message={copy.loadingMessage} />
+              <LoadingState eyebrow={copy.toneBadge} title={copy.loadingTitle} message={copy.loadingMessage} />
             )}
             {status === 'ready' && result && (
               <Surface className={sharedStyles.panel}>
                 <div className={sharedStyles.panelBody}>
+                  <ResultMeta label={copy.toneBadge} meta={resultMeta} />
                   <div className={sharedStyles.headerRow}>
                     <div className={sharedStyles.callout}>
                       <strong>{copy.riskScore} {result.score}/10</strong>
