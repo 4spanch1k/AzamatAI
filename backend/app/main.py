@@ -12,6 +12,7 @@ from app.routes.loan import router as loan_router
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    settings.validate_runtime_configuration()
 
     app = FastAPI(
         title=settings.app_name,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
@@ -21,12 +22,12 @@ ResponseModel = TypeVar("ResponseModel", bound=BaseModel)
 
 DOCUMENT_SYSTEM_PROMPT = (
     "You are AzamatAI, an AI assistant for legal and document review in Kazakhstan. "
-    "Write in plain language, do not invent facts, and if something is uncertain say so directly. "
-    "Return only one JSON object that matches the provided schema."
+    "Write in plain language, do not invent facts, keep the output short and structured, "
+    "and if something is uncertain say so directly. Return only one JSON object that matches the provided schema."
 )
 EGOV_SYSTEM_PROMPT = (
     "You are AzamatAI, an AI assistant for navigating Kazakhstan public services. "
-    "Give practical, concise guidance, avoid invented facts, and say when details are uncertain. "
+    "Give practical, concise guidance, avoid invented facts, keep steps short, and say when details are uncertain. "
     "Return only one JSON object that matches the provided schema."
 )
 LOAN_SYSTEM_PROMPT = (
@@ -44,7 +45,7 @@ JOB_SYSTEM_PROMPT = (
 async def generate_document_analysis(text: str) -> dict[str, Any]:
     signal_codes = detect_document_signal_codes(text)
     baseline = _build_document_baseline(signal_codes)
-    user_input = f"Signal hints: {', '.join(signal_codes)}\n\nDocument text:\n{text}"
+    user_input = _build_document_user_input(text, signal_codes, baseline)
 
     return await _generate_structured_response(
         schema=DocumentDecodeResponse,
@@ -57,7 +58,7 @@ async def generate_document_analysis(text: str) -> dict[str, Any]:
 async def generate_egov_route(task_description: str) -> dict[str, Any]:
     signal_codes = detect_egov_signal_codes(task_description)
     baseline = _build_egov_baseline(task_description, signal_codes)
-    user_input = f"Signal hints: {', '.join(signal_codes)}\n\nUser task:\n{task_description}"
+    user_input = _build_egov_user_input(task_description, signal_codes, baseline)
 
     return await _generate_structured_response(
         schema=EGovNavigatorResponse,
@@ -69,20 +70,7 @@ async def generate_egov_route(task_description: str) -> dict[str, Any]:
 
 async def generate_loan_explanation(calculated_data: dict[str, Any]) -> dict[str, Any]:
     baseline = LoanAnalyzerResponse.model_validate(calculated_data)
-    user_input = f"""
-    Explain this loan assessment in plain language.
-
-    Deterministic numbers:
-    total_payment={calculated_data["total_payment"]}
-    overpayment={calculated_data["overpayment"]}
-    overpayment_percent={calculated_data["overpayment_percent"]}
-    risk_level={calculated_data["risk_level"]}
-    summary={calculated_data["summary"]}
-    recommendation={calculated_data["recommendation"]}
-
-    Deterministic warnings:
-    {calculated_data["warnings"]}
-    """.strip()
+    user_input = _build_loan_user_input(calculated_data, baseline)
 
     return await _generate_structured_response(
         schema=LoanAnalyzerResponse,
@@ -94,18 +82,7 @@ async def generate_loan_explanation(calculated_data: dict[str, Any]) -> dict[str
 
 async def generate_job_explanation(job_text: str, flags_data: dict[str, Any]) -> dict[str, Any]:
     baseline = JobScanResponse.model_validate(_build_job_baseline(flags_data))
-    user_input = f"""
-    Review this job offer and explain the risk in plain language.
-
-    Detected flags:
-    {flags_data["flags"]}
-
-    Deterministic risk score: {flags_data["score"]}
-    Deterministic risk level: {flags_data["risk_level"]}
-
-    Job text:
-    {job_text}
-    """.strip()
+    user_input = _build_job_user_input(job_text, flags_data, baseline)
 
     return await _generate_structured_response(
         schema=JobScanResponse,
@@ -129,6 +106,66 @@ class AIService:
     async def scan_job_offer(self, payload: JobScanRequest) -> JobScanResponse:
         flags_data = _build_job_flags_data(payload.job_text)
         return JobScanResponse.model_validate(await generate_job_explanation(payload.job_text, flags_data))
+
+
+def _build_document_user_input(
+    text: str,
+    signal_codes: list[str],
+    baseline: DocumentDecodeResponse,
+) -> str:
+    return "\n\n".join(
+        [
+            "Task: analyze the document text and keep the answer short, practical, and frontend-friendly.",
+            f"Signal hints: {', '.join(signal_codes)}",
+            f"Baseline fallback JSON:\n{_to_pretty_json(baseline.model_dump())}",
+            f"Document text:\n{text.strip()}",
+        ]
+    )
+
+
+def _build_egov_user_input(
+    task_description: str,
+    signal_codes: list[str],
+    baseline: EGovNavigatorResponse,
+) -> str:
+    return "\n\n".join(
+        [
+            "Task: build a short Kazakhstan-specific eGov route with only practical next steps.",
+            f"Signal hints: {', '.join(signal_codes)}",
+            f"Baseline fallback JSON:\n{_to_pretty_json(baseline.model_dump())}",
+            f"User request:\n{task_description.strip()}",
+        ]
+    )
+
+
+def _build_loan_user_input(
+    calculated_data: dict[str, Any],
+    baseline: LoanAnalyzerResponse,
+) -> str:
+    return "\n\n".join(
+        [
+            "Task: explain the deterministic loan result in plain language.",
+            "Do not change numeric fields, risk level, or warnings. Improve only the human-readable summary and recommendation if useful.",
+            f"Deterministic loan payload:\n{_to_pretty_json(calculated_data)}",
+            f"Baseline JSON:\n{_to_pretty_json(baseline.model_dump())}",
+        ]
+    )
+
+
+def _build_job_user_input(
+    job_text: str,
+    flags_data: dict[str, Any],
+    baseline: JobScanResponse,
+) -> str:
+    return "\n\n".join(
+        [
+            "Task: explain why the detected job-offer flags matter in plain language.",
+            "Do not change flags, score, or risk level. Improve only explanation and recommendation if useful.",
+            f"Deterministic risk payload:\n{_to_pretty_json(flags_data)}",
+            f"Baseline JSON:\n{_to_pretty_json(baseline.model_dump())}",
+            f"Job text:\n{job_text.strip()}",
+        ]
+    )
 
 
 async def _generate_structured_response(
@@ -164,6 +201,10 @@ def _normalize_response_payload(
         return schema.model_validate(merged_payload).model_dump()
     except ValidationError as exc:
         raise ProviderResponseError("AI provider returned an invalid response shape.") from exc
+
+
+def _to_pretty_json(payload: dict[str, Any]) -> str:
+    return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
 def _build_document_baseline(signal_codes: list[str]) -> DocumentDecodeResponse:

@@ -24,12 +24,33 @@ class ProviderResponseError(ProviderError):
     """Raised when the upstream provider response cannot be parsed."""
 
 
+JSON_RESPONSE_MIME_TYPE = "application/json"
+MODEL_PATH_PREFIX = "models/"
+
+
 def _normalize_prompt(value: str, field_name: str) -> str:
     normalized = value.strip()
     if not normalized:
         raise ProviderError(f"{field_name} must not be empty.")
 
     return normalized
+
+
+def _normalize_model_name(model_name: str) -> str:
+    normalized_model_name = model_name.strip()
+    if not normalized_model_name:
+        raise ProviderConfigurationError("GOOGLE_MODEL must not be empty.")
+
+    if normalized_model_name.startswith(MODEL_PATH_PREFIX):
+        return normalized_model_name
+
+    return f"{MODEL_PATH_PREFIX}{normalized_model_name}"
+
+
+def _build_generate_content_endpoint(base_url: str, model_name: str) -> str:
+    normalized_base_url = base_url.rstrip("/")
+    normalized_model_name = _normalize_model_name(model_name)
+    return f"{normalized_base_url}/{normalized_model_name}:generateContent"
 
 
 def _prepare_response_json_schema(response_schema: dict[str, Any]) -> dict[str, Any]:
@@ -66,7 +87,7 @@ def _build_request_payload(
 ) -> dict[str, Any]:
     generation_config: dict[str, Any] = {
         "temperature": 0.2,
-        "responseMimeType": "application/json",
+        "responseMimeType": JSON_RESPONSE_MIME_TYPE,
     }
     if response_schema is not None:
         generation_config["responseJsonSchema"] = _prepare_response_json_schema(response_schema)
@@ -91,8 +112,12 @@ async def _request_generation_payload(payload: dict[str, Any]) -> dict[str, Any]
     if not settings.google_api_key:
         raise ProviderConfigurationError("GOOGLE_API_KEY is not configured.")
 
-    endpoint = f"{settings.google_api_base_url}/{settings.google_model}:generateContent"
+    endpoint = _build_generate_content_endpoint(
+        settings.google_api_base_url,
+        settings.google_model,
+    )
     headers = {
+        "Accept": JSON_RESPONSE_MIME_TYPE,
         "Content-Type": "application/json",
         "x-goog-api-key": settings.google_api_key,
     }
@@ -102,10 +127,21 @@ async def _request_generation_payload(payload: dict[str, Any]) -> dict[str, Any]
             response = await client.post(endpoint, headers=headers, json=payload)
             response.raise_for_status()
             return response.json()
+    except httpx.TimeoutException as exc:
+        raise ProviderRequestError("Google AI request timed out.") from exc
     except httpx.HTTPError as exc:
         raise ProviderRequestError("Google AI request failed.") from exc
     except ValueError as exc:
         raise ProviderResponseError("Google AI returned a non-JSON HTTP response.") from exc
+
+
+def _extract_text_parts(parts: list[dict[str, Any]]) -> str:
+    text_segments = [
+        part["text"]
+        for part in parts
+        if isinstance(part, dict) and isinstance(part.get("text"), str) and part["text"].strip()
+    ]
+    return "\n".join(text_segments).strip()
 
 
 def _extract_json_text(raw_text: str) -> str:
@@ -125,10 +161,39 @@ def _extract_json_text(raw_text: str) -> str:
 
 
 def _parse_response_json(response_payload: dict[str, Any]) -> dict[str, Any]:
+    prompt_feedback = response_payload.get("promptFeedback")
+    if isinstance(prompt_feedback, dict) and prompt_feedback.get("blockReason"):
+        raise ProviderResponseError(
+            f"Google AI blocked the prompt: {prompt_feedback['blockReason']}."
+        )
+
     try:
-        raw_text = response_payload["candidates"][0]["content"]["parts"][0]["text"]
+        candidates = response_payload["candidates"]
     except (KeyError, IndexError, TypeError) as exc:
+        raise ProviderResponseError("Google AI response payload is missing candidates.") from exc
+
+    if not isinstance(candidates, list) or not candidates:
+        raise ProviderResponseError("Google AI returned no candidates.")
+
+    candidate = candidates[0]
+    if not isinstance(candidate, dict):
+        raise ProviderResponseError("Google AI returned an invalid candidate payload.")
+
+    finish_reason = candidate.get("finishReason")
+    if finish_reason in {"SAFETY", "BLOCKLIST", "PROHIBITED_CONTENT", "RECITATION"}:
+        raise ProviderResponseError(f"Google AI stopped generation: {finish_reason}.")
+
+    try:
+        parts = candidate["content"]["parts"]
+    except (KeyError, TypeError) as exc:
         raise ProviderResponseError("Google AI response payload is missing generated text.") from exc
+
+    if not isinstance(parts, list):
+        raise ProviderResponseError("Google AI response parts payload is invalid.")
+
+    raw_text = _extract_text_parts(parts)
+    if not raw_text:
+        raise ProviderResponseError("Google AI returned an empty text response.")
 
     try:
         parsed_payload = json.loads(_extract_json_text(raw_text))

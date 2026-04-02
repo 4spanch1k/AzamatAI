@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from app.core.config import Settings
 from app.main import create_app
 from app.providers.google_ai import ProviderError
 
@@ -140,6 +141,24 @@ class AppSmokeTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 422)
+
+    def test_create_app_fails_fast_in_production_without_google_api_key(self) -> None:
+        with patch(
+            "app.main.get_settings",
+            return_value=Settings(
+                app_name="AzamatAI API",
+                app_version="0.1.0",
+                app_environment="production",
+                frontend_origin="http://127.0.0.1:4174",
+                cors_allow_origins=("http://127.0.0.1:4174",),
+                google_api_key=None,
+                google_model="gemini-2.5-flash",
+                google_api_base_url="https://generativelanguage.googleapis.com/v1beta",
+                google_request_timeout_seconds=20.0,
+            ),
+        ):
+            with self.assertRaises(RuntimeError):
+                create_app()
 
 
 if __name__ == "__main__":
