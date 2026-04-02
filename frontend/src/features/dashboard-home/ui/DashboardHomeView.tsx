@@ -14,10 +14,8 @@ export function DashboardHomeView() {
     <div className={styles.page}>
       <DashboardHero
         description={copy.description}
-        primaryActionLabel={copy.primaryAction}
         title={copy.title}
         eyebrow={copy.eyebrow}
-        onPrimaryAction={() => navigate('/dashboard/document-decoder')}
       />
 
       <section className={styles.section}>
