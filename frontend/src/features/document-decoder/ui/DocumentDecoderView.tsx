@@ -118,14 +118,40 @@ export function DocumentDecoderView() {
                   hint={copy.fieldHint}
                   label={copy.fieldLabel}
                   placeholder={copy.fieldPlaceholder}
-                  rows={14}
+                  rows={12}
                   value={documentText}
                   onChange={(event) => setDocumentText(event.target.value)}
                 />
-                <div className={sharedStyles.uploadZone}>
-                  <strong>{copy.uploadTitle}</strong>
-                  <p className={sharedStyles.muted}>{copy.uploadDescription}</p>
+
+                <div className={sharedStyles.sectionIntro}>
+                  <strong>{copy.examplesLabel}</strong>
+                  <p className={sharedStyles.muted}>{copy.examplesHint}</p>
                 </div>
+                <div className={sharedStyles.chips}>
+                  {copy.examples.map((example) => (
+                    <button
+                      key={example.label}
+                      className={`${sharedStyles.chip} ${documentText === example.value ? sharedStyles.chipActive : ''}`}
+                      onClick={() => setDocumentText(example.value)}
+                      type="button"
+                    >
+                      {example.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className={sharedStyles.helperCard}>
+                  <strong>{copy.helperTitle}</strong>
+                  <ul className={sharedStyles.helperList}>
+                    {copy.helperItems.map((item) => (
+                      <li key={item} className={sharedStyles.helperListItem}>
+                        <span className={sharedStyles.helperMarker}>AI</span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
                 <div className={sharedStyles.actionRow}>
                   <Button onClick={() => analyze(documentText)}>{copy.analyzeButton}</Button>
                   <Button
@@ -148,6 +174,8 @@ export function DocumentDecoderView() {
             {error && <ErrorAlert message={error} />}
             {status === 'idle' && !result && (
               <EmptyState
+                eyebrow={copy.emptyEyebrow}
+                items={copy.emptyItems}
                 title={copy.emptyTitle}
                 message={copy.emptyMessage}
               />

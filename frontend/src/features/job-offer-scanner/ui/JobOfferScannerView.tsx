@@ -128,10 +128,39 @@ export function JobOfferScannerView() {
                 hint={copy.fieldHint}
                 label={copy.fieldLabel}
                 placeholder={copy.fieldPlaceholder}
-                rows={15}
+                rows={13}
                 value={jobText}
                 onChange={(event) => setJobText(event.target.value)}
               />
+
+              <div className={sharedStyles.sectionIntro}>
+                <strong>{copy.examplesLabel}</strong>
+                <p className={sharedStyles.muted}>{copy.examplesHint}</p>
+              </div>
+              <div className={sharedStyles.chips}>
+                {copy.examples.map((example) => (
+                  <button
+                    key={example.label}
+                    className={`${sharedStyles.chip} ${jobText === example.value ? sharedStyles.chipActive : ''}`}
+                    onClick={() => setJobText(example.value)}
+                    type="button"
+                  >
+                    {example.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className={sharedStyles.helperCard}>
+                <strong>{copy.helperTitle}</strong>
+                <ul className={sharedStyles.helperList}>
+                  {copy.helperItems.map((item) => (
+                    <li key={item} className={sharedStyles.helperListItem}>
+                      <span className={sharedStyles.helperMarker}>AI</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
               <div className={sharedStyles.actionRow}>
                 <Button onClick={() => scan(jobText)}>{copy.scanButton}</Button>
@@ -153,6 +182,8 @@ export function JobOfferScannerView() {
             {error && <ErrorAlert message={error} />}
             {status === 'idle' && !result && (
               <EmptyState
+                eyebrow={copy.emptyEyebrow}
+                items={copy.emptyItems}
                 title={copy.emptyTitle}
                 message={copy.emptyMessage}
               />

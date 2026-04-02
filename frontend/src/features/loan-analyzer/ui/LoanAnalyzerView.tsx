@@ -36,6 +36,15 @@ const demoForm = {
   fees: '15000',
   insurance: '8000',
 };
+const autoLoanForm = {
+  amount: '3500000',
+  duration: '60',
+  monthlyPayment: '98000',
+  fees: '40000',
+  insurance: '120000',
+};
+const loanPresetKeys = ['consumer', 'auto'] as const;
+type LoanPresetKey = (typeof loanPresetKeys)[number];
 
 function toNumber(value: string) {
   return Number(value.replace(/[^\d.]/g, ''));
@@ -139,13 +148,47 @@ export function LoanAnalyzerView() {
           <Surface className={sharedStyles.panel}>
             <div className={sharedStyles.panelBody}>
               <div className={sharedStyles.gridTwo}>
-                <TextField label={copy.labels.amount} placeholder="1000000" value={form.amount} onChange={(event) => updateField('amount', event.target.value)} />
-                <TextField label={copy.labels.duration} placeholder="24" value={form.duration} onChange={(event) => updateField('duration', event.target.value)} />
-                <TextField label={copy.labels.monthlyPayment} placeholder="52000" value={form.monthlyPayment} onChange={(event) => updateField('monthlyPayment', event.target.value)} />
-                <TextField label={copy.labels.fees} placeholder="15000" value={form.fees} onChange={(event) => updateField('fees', event.target.value)} />
+                <TextField hint={copy.labelHints.amount} label={copy.labels.amount} placeholder={copy.placeholders.amount} value={form.amount} onChange={(event) => updateField('amount', event.target.value)} />
+                <TextField hint={copy.labelHints.duration} label={copy.labels.duration} placeholder={copy.placeholders.duration} value={form.duration} onChange={(event) => updateField('duration', event.target.value)} />
+                <TextField hint={copy.labelHints.monthlyPayment} label={copy.labels.monthlyPayment} placeholder={copy.placeholders.monthlyPayment} value={form.monthlyPayment} onChange={(event) => updateField('monthlyPayment', event.target.value)} />
+                <TextField hint={copy.labelHints.fees} label={copy.labels.fees} placeholder={copy.placeholders.fees} value={form.fees} onChange={(event) => updateField('fees', event.target.value)} />
               </div>
 
-              <TextField label={copy.labels.insurance} placeholder="8000" value={form.insurance} onChange={(event) => updateField('insurance', event.target.value)} />
+              <TextField hint={copy.labelHints.insurance} label={copy.labels.insurance} placeholder={copy.placeholders.insurance} value={form.insurance} onChange={(event) => updateField('insurance', event.target.value)} />
+
+              <div className={sharedStyles.helperCard}>
+                <strong>{copy.helperTitle}</strong>
+                <ul className={sharedStyles.helperList}>
+                  {copy.helperItems.map((item) => (
+                    <li key={item} className={sharedStyles.helperListItem}>
+                      <span className={sharedStyles.helperMarker}>AI</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className={sharedStyles.sectionIntro}>
+                <strong>{copy.presetsLabel}</strong>
+                <p className={sharedStyles.muted}>{copy.presetsHint}</p>
+              </div>
+              <div className={sharedStyles.chips}>
+                {loanPresetKeys.map((presetKey) => {
+                  const presetForm = presetKey === 'consumer' ? demoForm : autoLoanForm;
+                  const isActive = Object.entries(presetForm).every(([key, value]) => form[key as keyof typeof demoForm] === value);
+
+                  return (
+                    <button
+                      key={presetKey}
+                      className={`${sharedStyles.chip} ${isActive ? sharedStyles.chipActive : ''}`}
+                      onClick={() => setForm(presetForm)}
+                      type="button"
+                    >
+                      {copy.presetLabels[presetKey as LoanPresetKey]}
+                    </button>
+                  );
+                })}
+              </div>
 
               <div className={sharedStyles.actionRow}>
                 <Button onClick={() => analyze(form)}>{copy.analyzeButton}</Button>
@@ -167,6 +210,8 @@ export function LoanAnalyzerView() {
             {error && <ErrorAlert message={error} />}
             {status === 'idle' && !result && (
               <EmptyState
+                eyebrow={copy.emptyEyebrow}
+                items={copy.emptyItems}
                 title={copy.emptyTitle}
                 message={copy.emptyMessage}
               />

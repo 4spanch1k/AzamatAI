@@ -115,25 +115,38 @@ export function EGovNavigatorView() {
                 hint={copy.fieldHint}
                 label={copy.fieldLabel}
                 placeholder={copy.fieldPlaceholder}
-                rows={12}
+                rows={10}
                 value={goal}
                 onChange={(event) => setGoal(event.target.value)}
               />
 
-              <div>
+              <div className={sharedStyles.sectionIntro}>
                 <strong>{copy.popularRequests}</strong>
-                <div className={sharedStyles.chips}>
-                  {copy.examples.map((example) => (
-                    <button
-                      key={example}
-                      className={`${sharedStyles.chip} ${goal === example ? sharedStyles.chipActive : ''}`}
-                      onClick={() => setGoal(example)}
-                      type="button"
-                    >
-                      {example}
-                    </button>
+                <p className={sharedStyles.muted}>{copy.examplesHint}</p>
+              </div>
+              <div className={sharedStyles.chips}>
+                {copy.examples.map((example) => (
+                  <button
+                    key={example}
+                    className={`${sharedStyles.chip} ${goal === example ? sharedStyles.chipActive : ''}`}
+                    onClick={() => setGoal(example)}
+                    type="button"
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
+
+              <div className={sharedStyles.helperCard}>
+                <strong>{copy.helperTitle}</strong>
+                <ul className={sharedStyles.helperList}>
+                  {copy.helperItems.map((item) => (
+                    <li key={item} className={sharedStyles.helperListItem}>
+                      <span className={sharedStyles.helperMarker}>AI</span>
+                      <span>{item}</span>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
 
               <div className={sharedStyles.actionRow}>
@@ -156,6 +169,8 @@ export function EGovNavigatorView() {
             {error && <ErrorAlert message={error} />}
             {status === 'idle' && !result && (
               <EmptyState
+                eyebrow={copy.emptyEyebrow}
+                items={copy.emptyItems}
                 title={copy.emptyTitle}
                 message={copy.emptyMessage}
               />
