@@ -7,6 +7,29 @@ on:
   pull_request:
 
 jobs:
+  backend-test:
+    name: Run backend tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install backend dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run backend test suite
+        run: python -m unittest discover -s tests
+
   frontend-test:
     name: Test and build frontend
     runs-on: ubuntu-latest

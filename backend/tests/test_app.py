@@ -117,6 +117,30 @@ class AppSmokeTests(unittest.TestCase):
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json()["detail"], "AI provider request failed.")
 
+    def test_document_decode_rejects_empty_text(self) -> None:
+        response = self.client.post("/api/document-decode", json={"text": "   "})
+
+        self.assertEqual(response.status_code, 422)
+
+    def test_job_scan_rejects_short_text(self) -> None:
+        response = self.client.post("/api/job-scan", json={"job_text": "too short"})
+
+        self.assertEqual(response.status_code, 422)
+
+    def test_loan_analyzer_rejects_non_positive_amount(self) -> None:
+        response = self.client.post(
+            "/api/loan-analyzer",
+            json={
+                "loan_amount": 0,
+                "months": 24,
+                "monthly_payment": 52000,
+                "fees": 15000,
+                "insurance": 8000,
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+
 
 if __name__ == "__main__":
     unittest.main()

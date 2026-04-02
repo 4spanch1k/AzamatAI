@@ -48,6 +48,20 @@ class LoanAnalysisTests(unittest.TestCase):
         self.assertEqual(result.overpayment_percent, 10.4)
         self.assertEqual(result.risk_level, "low")
 
+    def test_analyze_loan_numbers_does_not_return_negative_overpayment(self) -> None:
+        result = analyze_loan_numbers(
+            loan_amount=1_000_000,
+            months=12,
+            monthly_payment=75_000,
+            fees=0,
+            insurance=0,
+        )
+
+        self.assertEqual(result.total_payment, 900_000)
+        self.assertEqual(result.overpayment, 0.0)
+        self.assertEqual(result.overpayment_percent, 0.0)
+        self.assertEqual(result.risk_level, "low")
+
 
 class JobFlagScanTests(unittest.TestCase):
     def test_scan_job_flags_detects_multiple_high_risk_patterns(self) -> None:
@@ -69,6 +83,21 @@ class JobFlagScanTests(unittest.TestCase):
         self.assertEqual(result.flags, [])
         self.assertEqual(result.score, 0)
         self.assertEqual(result.risk_level, "low")
+
+    def test_scan_job_flags_returns_medium_risk_for_missing_company_and_contract_details(self) -> None:
+        result = scan_job_flags(
+            "Looking for a sales manager. Flexible schedule, stable salary, interview after application."
+        )
+
+        self.assertEqual(
+            result.flags,
+            [
+                "No clear company name is mentioned.",
+                "The offer does not clearly explain contract or employment terms.",
+            ],
+        )
+        self.assertEqual(result.score, 4)
+        self.assertEqual(result.risk_level, "medium")
 
 
 if __name__ == "__main__":
