@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { Eye, EyeOff, LoaderCircle } from 'lucide-react';
 import { useAuth } from '@/features/auth/model/AuthContext';
+import { useLanguage } from '@/shared/i18n/LanguageProvider';
 import { Button } from '@/shared/ui/Button';
 import { ErrorAlert } from '@/shared/ui/ErrorAlert';
 import { TextField } from '@/shared/ui/TextField';
@@ -14,7 +15,9 @@ interface AuthFormProps {
 export function AuthForm({ mode }: AuthFormProps) {
   const { login, register } = useAuth();
   const navigate = useNavigate();
+  const { messages } = useLanguage();
   const isRegister = mode === 'register';
+  const copy = isRegister ? messages.auth.register : messages.auth.login;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,17 +34,17 @@ export function AuthForm({ mode }: AuthFormProps) {
     setError('');
 
     if (!email || !password || (isRegister && !confirmPassword)) {
-      setError('Fill in the required fields before continuing.');
+      setError(messages.auth.errors.required);
       return;
     }
 
     if (isRegister && !passwordStrong) {
-      setError('Use a password with at least 8 characters.');
+      setError(messages.auth.errors.passwordLength);
       return;
     }
 
     if (isRegister && !passwordsMatch) {
-      setError('Passwords must match before the account can be created.');
+      setError(messages.auth.errors.passwordMatch);
       return;
     }
 
@@ -56,25 +59,21 @@ export function AuthForm({ mode }: AuthFormProps) {
 
       navigate('/dashboard');
     } catch {
-      setError('The request failed. Try again.');
+      setError(messages.auth.errors.requestFailed);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const submitLabel = isRegister ? 'Create account' : 'Sign in';
-  const loadingLabel = isRegister ? 'Creating account' : 'Signing in';
+  const submitLabel = copy.submit;
+  const loadingLabel = copy.loading;
 
   return (
     <div className={styles.formShell}>
       <div className={styles.header}>
-        <span className={styles.kicker}>{isRegister ? 'Register' : 'Sign in'}</span>
-        <h2>{isRegister ? 'Create your AzamatAI workspace' : 'Welcome back'}</h2>
-        <p>
-          {isRegister
-            ? 'Set up a clean dashboard for document, eGov, loan, and job analysis.'
-            : 'Open the dashboard and continue from the module you need.'}
-        </p>
+        <span className={styles.kicker}>{copy.kicker}</span>
+        <h2>{copy.title}</h2>
+        <p>{copy.description}</p>
       </div>
 
       {error && <ErrorAlert message={error} />}
@@ -82,8 +81,8 @@ export function AuthForm({ mode }: AuthFormProps) {
       <form className={styles.form} onSubmit={handleSubmit}>
         <TextField
           autoComplete="email"
-          label="Email"
-          placeholder="you@example.com"
+          label={messages.auth.emailLabel}
+          placeholder={messages.auth.emailPlaceholder}
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
@@ -91,10 +90,14 @@ export function AuthForm({ mode }: AuthFormProps) {
 
         <label className={styles.passwordField} htmlFor={`${mode}-password`}>
           <span className={styles.passwordHeader}>
-            <span>Password</span>
+            <span>{messages.auth.passwordLabel}</span>
             {isRegister && (
               <small className={passwordStrong ? styles.strong : styles.weak}>
-                {password ? (passwordStrong ? 'Strong enough' : 'Minimum 8 characters') : 'Minimum 8 characters'}
+                {password
+                  ? passwordStrong
+                    ? messages.auth.passwordHintStrong
+                    : messages.auth.passwordHintWeak
+                  : messages.auth.passwordHintIdle}
               </small>
             )}
           </span>
@@ -103,7 +106,9 @@ export function AuthForm({ mode }: AuthFormProps) {
               autoComplete={isRegister ? 'new-password' : 'current-password'}
               className={styles.passwordInput}
               id={`${mode}-password`}
-              placeholder={isRegister ? 'Create a password' : 'Enter your password'}
+              placeholder={
+                isRegister ? messages.auth.createPasswordPlaceholder : messages.auth.enterPasswordPlaceholder
+              }
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
@@ -121,9 +126,15 @@ export function AuthForm({ mode }: AuthFormProps) {
         {isRegister && (
           <TextField
             autoComplete="new-password"
-            hint={confirmPassword ? (passwordsMatch ? 'Passwords match' : 'Needs to match') : undefined}
-            label="Confirm password"
-            placeholder="Repeat password"
+            hint={
+              confirmPassword
+                ? passwordsMatch
+                  ? messages.auth.confirmHintMatch
+                  : messages.auth.confirmHintMismatch
+                : undefined
+            }
+            label={messages.auth.confirmPasswordLabel}
+            placeholder={messages.auth.confirmPasswordPlaceholder}
             type={showPassword ? 'text' : 'password'}
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
@@ -149,13 +160,13 @@ export function AuthForm({ mode }: AuthFormProps) {
                   await login('demo@azamatai.kz', 'demo');
                   navigate('/dashboard');
                 } catch {
-                  setError('Demo login failed. Try again.');
+                  setError(messages.auth.errors.demoFailed);
                 } finally {
                   setIsSubmitting(false);
                 }
               }}
             >
-              Continue as demo user
+              {messages.auth.login.demo}
             </Button>
           )}
         </div>

@@ -15,6 +15,12 @@
   background: var(--color-surface-strong);
 }
 
+.headerControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .brand {
   padding: 0;
   border: 0;
@@ -210,10 +216,17 @@
 @media (max-width: 640px) {
   .header {
     padding: 1rem 1.25rem;
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .hero {
     padding: 3rem 1rem;
+  }
+
+  .headerControls {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .features {

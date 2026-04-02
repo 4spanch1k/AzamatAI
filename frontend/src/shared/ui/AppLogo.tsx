@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { useLanguage } from '@/shared/i18n/LanguageProvider';
 import styles from './AppLogo.module.css';
 
 interface AppLogoProps {
@@ -10,14 +11,17 @@ interface AppLogoProps {
 export function AppLogo({
   to = '/',
   compact = false,
-  subtitle = 'AI guidance for Kazakhstan',
+  subtitle,
 }: AppLogoProps) {
+  const { messages } = useLanguage();
+  const resolvedSubtitle = subtitle ?? messages.appLogoSubtitle;
+
   const content = (
     <>
       <span className={styles.mark}>A</span>
       <span className={styles.copy}>
         <strong>AzamatAI</strong>
-        {!compact && <small>{subtitle}</small>}
+        {!compact && <small>{resolvedSubtitle}</small>}
       </span>
     </>
   );

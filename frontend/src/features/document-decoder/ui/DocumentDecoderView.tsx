@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react';
 import { FileText } from 'lucide-react';
+import { useLanguage } from '@/shared/i18n/LanguageProvider';
 import { modules, toneStyles } from '@/shared/config/navigation';
 import { delay } from '@/shared/lib/formatters';
 import { Button } from '@/shared/ui/Button';
@@ -27,52 +28,42 @@ interface DocumentResult {
 
 const moduleMeta = modules.find((module) => module.key === 'document-decoder')!;
 const tone = toneStyles[moduleMeta.tone];
-const demoText =
-  'Notice from the State Revenue Committee: please pay additional tax and submit confirmation within 10 calendar days.';
 
-function buildDocumentResult(source: string): DocumentResult {
+function buildDocumentResult(source: string, copy: ReturnType<typeof useLanguage>['messages']['documentDecoder']): DocumentResult {
   const normalized = source.toLowerCase();
 
-  if (normalized.includes('court') || normalized.includes('claim')) {
+  if (
+    normalized.includes('court') ||
+    normalized.includes('claim') ||
+    normalized.includes('суд') ||
+    normalized.includes('иск') ||
+    normalized.includes('талап')
+  ) {
     return {
-      type: 'Court notice',
-      summary:
-        'This looks like a procedural notice connected to a court filing. The immediate task is to verify the case number, claimant, and response deadline.',
-      actions: [
-        'Check whether the court and case number match a real proceeding.',
-        'Collect contracts, receipts, or payment proof tied to the dispute.',
-        'Prepare a written response or contact a lawyer before the deadline.',
-      ],
-      deadline: 'Response expected within 5 business days after receipt.',
+      type: copy.results.court.type,
+      summary: copy.results.court.summary,
+      actions: copy.results.court.actions,
+      deadline: copy.results.court.deadline,
       riskLevel: 'high',
-      riskLabel: 'High urgency',
-      warnings: [
-        'Ignoring the notice can lead to a default decision.',
-        'Do not rely on screenshots alone; keep the full original document.',
-      ],
+      riskLabel: copy.results.court.riskLabel,
+      warnings: copy.results.court.warnings,
     };
   }
 
   return {
-    type: 'Tax notice',
-    summary:
-      'This document requests tax-related action and frames a short response window. The practical next step is to verify the amount, pay through an official channel, and store confirmation.',
-    actions: [
-      'Check the calculation and tax period before making payment.',
-      'Use an official payment route such as ePay or your bank app.',
-      'Keep a receipt and, if requested, submit proof through the relevant portal.',
-    ],
-    deadline: 'Payment or clarification is expected within 10 calendar days.',
+    type: copy.results.tax.type,
+    summary: copy.results.tax.summary,
+    actions: copy.results.tax.actions,
+    deadline: copy.results.tax.deadline,
     riskLevel: 'medium',
-    riskLabel: 'Medium risk',
-    warnings: [
-      'Make sure the BIN or payment reference belongs to the official agency.',
-      'If the amount looks inconsistent, request clarification before paying.',
-    ],
+    riskLabel: copy.results.tax.riskLabel,
+    warnings: copy.results.tax.warnings,
   };
 }
 
 export function DocumentDecoderView() {
+  const { messages } = useLanguage();
+  const copy = messages.documentDecoder;
   const [documentText, setDocumentText] = useState('');
   const [status, setStatus] = useState<ResultStatus>('idle');
   const [error, setError] = useState('');
@@ -80,7 +71,7 @@ export function DocumentDecoderView() {
 
   const analyze = async (source: string) => {
     if (!source.trim()) {
-      setError('Paste a document or load the demo text before analysis.');
+      setError(copy.errorMessage);
       setResult(null);
       setStatus('idle');
       return;
@@ -89,7 +80,7 @@ export function DocumentDecoderView() {
     setError('');
     setStatus('loading');
     await delay(900);
-    setResult(buildDocumentResult(source));
+    setResult(buildDocumentResult(source, copy));
     setStatus('ready');
   };
 
@@ -107,17 +98,14 @@ export function DocumentDecoderView() {
       <header className={sharedStyles.header}>
         <span className={sharedStyles.kicker}>
           <FileText size={16} />
-          Document Decoder
+          {copy.kicker}
         </span>
         <div className={sharedStyles.headerRow}>
           <div className={sharedStyles.headingBlock}>
-            <h1>Translate formal documents into a practical action list.</h1>
-            <p>
-              Paste a notice, letter, or legal text and get a short summary, a deadline view, and
-              the next actions in plain language.
-            </p>
+            <h1>{copy.title}</h1>
+            <p>{copy.description}</p>
           </div>
-          <span className={sharedStyles.toneBadge}>Structured summary</span>
+          <span className={sharedStyles.toneBadge}>{copy.toneBadge}</span>
         </div>
       </header>
 
@@ -127,34 +115,30 @@ export function DocumentDecoderView() {
             <Surface className={sharedStyles.panel}>
               <div className={sharedStyles.panelBody}>
                 <TextAreaField
-                  hint="Official notices, tax letters, or court messages"
-                  label="Document text"
-                  placeholder="Paste an official document here..."
+                  hint={copy.fieldHint}
+                  label={copy.fieldLabel}
+                  placeholder={copy.fieldPlaceholder}
                   rows={14}
                   value={documentText}
                   onChange={(event) => setDocumentText(event.target.value)}
                 />
                 <div className={sharedStyles.uploadZone}>
-                  <strong>Upload flow placeholder</strong>
-                  <p className={sharedStyles.muted}>
-                    File parsing is not wired yet, but the result layout is ready for OCR or backend extraction.
-                  </p>
+                  <strong>{copy.uploadTitle}</strong>
+                  <p className={sharedStyles.muted}>{copy.uploadDescription}</p>
                 </div>
                 <div className={sharedStyles.actionRow}>
-                  <Button onClick={() => analyze(documentText)}>Analyze document</Button>
+                  <Button onClick={() => analyze(documentText)}>{copy.analyzeButton}</Button>
                   <Button
                     variant="secondary"
                     onClick={() => {
-                      setDocumentText(demoText);
-                      void analyze(demoText);
+                      setDocumentText(copy.demoText);
+                      void analyze(copy.demoText);
                     }}
                   >
-                    Try demo
+                    {copy.tryDemoButton}
                   </Button>
                 </div>
-                <p className={sharedStyles.footerNote}>
-                  Best for tax notices, enforcement letters, official requests, and compliance reminders.
-                </p>
+                <p className={sharedStyles.footerNote}>{copy.footerNote}</p>
               </div>
             </Surface>
           </>
@@ -164,27 +148,27 @@ export function DocumentDecoderView() {
             {error && <ErrorAlert message={error} />}
             {status === 'idle' && !result && (
               <EmptyState
-                title="No analysis yet"
-                message="Run a document through the decoder to see the summary, action steps, deadline, and warnings."
+                title={copy.emptyTitle}
+                message={copy.emptyMessage}
               />
             )}
             {status === 'loading' && (
               <LoadingState
-                title="Reading document"
-                message="Extracting the document type, deadline, and recommended next steps."
+                title={copy.loadingTitle}
+                message={copy.loadingMessage}
               />
             )}
             {status === 'ready' && result && (
               <Surface className={sharedStyles.panel}>
                 <div className={sharedStyles.panelBody}>
                   <div className={sharedStyles.headerRow}>
-                    <ResultSection eyebrow="Detected type" title={result.type}>
+                    <ResultSection eyebrow={copy.detectedType} title={result.type}>
                       <p className={sharedStyles.muted}>{result.summary}</p>
                     </ResultSection>
                     <RiskBadge level={result.riskLevel}>{result.riskLabel}</RiskBadge>
                   </div>
 
-                  <ResultSection title="Action steps">
+                  <ResultSection title={copy.actionSteps}>
                     <div className={sharedStyles.list}>
                       {result.actions.map((item, index) => (
                         <div key={item} className={sharedStyles.listItem}>
@@ -195,14 +179,14 @@ export function DocumentDecoderView() {
                     </div>
                   </ResultSection>
 
-                  <ResultSection title="Deadline">
+                  <ResultSection title={copy.deadline}>
                     <div className={sharedStyles.callout}>
                       <strong>{result.deadline}</strong>
-                      <p>Keep the original file and payment or submission proof in the same case folder.</p>
+                      <p>{copy.deadlineNote}</p>
                     </div>
                   </ResultSection>
 
-                  <ResultSection title="Warnings">
+                  <ResultSection title={copy.warnings}>
                     <div className={sharedStyles.warningStack}>
                       {result.warnings.map((warning) => (
                         <div key={warning} className={sharedStyles.warningItem}>

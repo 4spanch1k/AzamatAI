@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react';
 import { BriefcaseBusiness } from 'lucide-react';
+import { useLanguage } from '@/shared/i18n/LanguageProvider';
 import { modules, toneStyles } from '@/shared/config/navigation';
 import { delay } from '@/shared/lib/formatters';
 import { Button } from '@/shared/ui/Button';
@@ -25,21 +26,35 @@ interface JobResult {
 
 const moduleMeta = modules.find((module) => module.key === 'job-offer-scanner')!;
 const tone = toneStyles[moduleMeta.tone];
-const demoOffer =
-  'Remote manager needed. Salary from 1,500,000 KZT. No experience required. Send a registration fee for training materials to reserve your place.';
 
-function buildJobResult(text: string): JobResult {
+function buildJobResult(
+  text: string,
+  copy: ReturnType<typeof useLanguage>['messages']['jobOfferScanner'],
+): JobResult {
   const normalized = text.toLowerCase();
   const flags = [];
 
-  if (normalized.includes('fee') || normalized.includes('payment')) {
-    flags.push('The offer requests money upfront before employment is confirmed.');
+  if (
+    normalized.includes('fee') ||
+    normalized.includes('payment') ||
+    normalized.includes('взнос') ||
+    normalized.includes('төлем')
+  ) {
+    flags.push(copy.flags.upfrontPayment);
   }
-  if (normalized.includes('no experience')) {
-    flags.push('Very low entry requirements paired with high pay are a common scam pattern.');
+  if (
+    normalized.includes('no experience') ||
+    normalized.includes('без опыта') ||
+    normalized.includes('тәжірибе')
+  ) {
+    flags.push(copy.flags.noExperience);
   }
-  if (normalized.includes('remote')) {
-    flags.push('Remote-only hiring without company verification needs extra caution.');
+  if (
+    normalized.includes('remote') ||
+    normalized.includes('удал') ||
+    normalized.includes('қашықтан')
+  ) {
+    flags.push(copy.flags.remoteOnly);
   }
 
   return {
@@ -48,16 +63,18 @@ function buildJobResult(text: string): JobResult {
     flags,
     explanation:
       flags.length >= 3
-        ? 'Multiple trust signals are missing while pressure to send money appears early. That combination is typical of fraudulent recruiting.'
-        : 'There are some caution markers, but the offer still needs company verification and contract review.',
+        ? copy.explanations.high
+        : copy.explanations.medium,
     recommendation:
       flags.length >= 3
-        ? 'Do not transfer money or identity documents until the employer is independently verified.'
-        : 'Ask for a formal contract, company registration details, and a real interview before moving forward.',
+        ? copy.recommendations.high
+        : copy.recommendations.medium,
   };
 }
 
 export function JobOfferScannerView() {
+  const { messages } = useLanguage();
+  const copy = messages.jobOfferScanner;
   const [jobText, setJobText] = useState('');
   const [status, setStatus] = useState<ResultStatus>('idle');
   const [error, setError] = useState('');
@@ -65,7 +82,7 @@ export function JobOfferScannerView() {
 
   const scan = async (source: string) => {
     if (!source.trim()) {
-      setError('Paste the job posting before scanning.');
+      setError(copy.errorMessage);
       setStatus('idle');
       setResult(null);
       return;
@@ -74,7 +91,7 @@ export function JobOfferScannerView() {
     setError('');
     setStatus('loading');
     await delay(820);
-    setResult(buildJobResult(source));
+    setResult(buildJobResult(source, copy));
     setStatus('ready');
   };
 
@@ -92,17 +109,14 @@ export function JobOfferScannerView() {
       <header className={sharedStyles.header}>
         <span className={sharedStyles.kicker}>
           <BriefcaseBusiness size={16} />
-          Job Offer Scanner
+          {copy.kicker}
         </span>
         <div className={sharedStyles.headerRow}>
           <div className={sharedStyles.headingBlock}>
-            <h1>Check whether a job offer is opportunity or bait.</h1>
-            <p>
-              Scan listings from Telegram, WhatsApp, or job boards and flag the patterns that often
-              signal scam recruitment.
-            </p>
+            <h1>{copy.title}</h1>
+            <p>{copy.description}</p>
           </div>
-          <span className={sharedStyles.toneBadge}>Risk scan</span>
+          <span className={sharedStyles.toneBadge}>{copy.toneBadge}</span>
         </div>
       </header>
 
@@ -111,24 +125,24 @@ export function JobOfferScannerView() {
           <Surface className={sharedStyles.panel}>
             <div className={sharedStyles.panelBody}>
               <TextAreaField
-                hint="Telegram, hh.kz, direct messages, or social posts"
-                label="Job description"
-                placeholder="Paste the offer text here..."
+                hint={copy.fieldHint}
+                label={copy.fieldLabel}
+                placeholder={copy.fieldPlaceholder}
                 rows={15}
                 value={jobText}
                 onChange={(event) => setJobText(event.target.value)}
               />
 
               <div className={sharedStyles.actionRow}>
-                <Button onClick={() => scan(jobText)}>Scan job offer</Button>
+                <Button onClick={() => scan(jobText)}>{copy.scanButton}</Button>
                 <Button
                   variant="secondary"
                   onClick={() => {
-                    setJobText(demoOffer);
-                    void scan(demoOffer);
+                    setJobText(copy.demoOffer);
+                    void scan(copy.demoOffer);
                   }}
                 >
-                  Try demo
+                  {copy.tryDemoButton}
                 </Button>
               </div>
             </div>
@@ -139,29 +153,29 @@ export function JobOfferScannerView() {
             {error && <ErrorAlert message={error} />}
             {status === 'idle' && !result && (
               <EmptyState
-                title="No scan yet"
-                message="Run the scanner to get a risk score, red flags, explanation, and a recommendation."
+                title={copy.emptyTitle}
+                message={copy.emptyMessage}
               />
             )}
             {status === 'loading' && (
-              <LoadingState title="Scanning posting" message="Checking the text for payment pressure, vague terms, and trust gaps." />
+              <LoadingState title={copy.loadingTitle} message={copy.loadingMessage} />
             )}
             {status === 'ready' && result && (
               <Surface className={sharedStyles.panel}>
                 <div className={sharedStyles.panelBody}>
                   <div className={sharedStyles.headerRow}>
                     <div className={sharedStyles.callout}>
-                      <strong>Risk score {result.score}/10</strong>
+                      <strong>{copy.riskScore} {result.score}/10</strong>
                       <div className={sharedStyles.progressTrack}>
                         <div className={sharedStyles.progressBar} style={{ width: `${result.score * 10}%` }} />
                       </div>
                     </div>
                     <RiskBadge level={result.riskLevel}>
-                      {result.riskLevel === 'high' ? 'High risk' : 'Medium risk'}
+                      {result.riskLevel === 'high' ? copy.highRisk : copy.mediumRisk}
                     </RiskBadge>
                   </div>
 
-                  <ResultSection title="Red flags">
+                  <ResultSection title={copy.redFlags}>
                     <div className={sharedStyles.warningStack}>
                       {result.flags.map((flag) => (
                         <div key={flag} className={sharedStyles.warningItem}>
@@ -172,13 +186,13 @@ export function JobOfferScannerView() {
                     </div>
                   </ResultSection>
 
-                  <ResultSection title="Explanation">
+                  <ResultSection title={copy.explanation}>
                     <p className={sharedStyles.muted}>{result.explanation}</p>
                   </ResultSection>
 
-                  <ResultSection title="Recommendation">
+                  <ResultSection title={copy.recommendation}>
                     <div className={sharedStyles.callout}>
-                      <strong>What to do next</strong>
+                      <strong>{copy.nextAction}</strong>
                       <p>{result.recommendation}</p>
                     </div>
                   </ResultSection>

@@ -1,32 +1,31 @@
 import { useNavigate } from 'react-router';
 import { BriefcaseBusiness, FileText, Globe, ShieldCheck, TrendingUp } from 'lucide-react';
+import { useLanguage } from '@/shared/i18n/LanguageProvider';
+import { LanguageSwitch } from '@/shared/ui/LanguageSwitch';
 import styles from './WelcomeView.module.css';
 
 const features = [
   {
     icon: FileText,
-    title: 'Document Decoder',
-    description: 'Understand any official document instantly',
+    key: 'document-decoder',
   },
   {
     icon: Globe,
-    title: 'eGov Navigator',
-    description: 'Step-by-step government service guides',
+    key: 'egov-navigator',
   },
   {
     icon: TrendingUp,
-    title: 'Loan Analyzer',
-    description: 'See the real cost of any loan offer',
+    key: 'loan-analyzer',
   },
   {
     icon: BriefcaseBusiness,
-    title: 'Job Offer Scanner',
-    description: "Detect scam offers before it's too late",
+    key: 'job-offer-scanner',
   },
 ];
 
 export function WelcomeView() {
   const navigate = useNavigate();
+  const { messages } = useLanguage();
 
   return (
     <div className={styles.page}>
@@ -36,54 +35,54 @@ export function WelcomeView() {
           <span className={styles.brandLabel}>AzamatAI</span>
         </button>
 
-        <button className={styles.headerAction} onClick={() => navigate('/login')} type="button">
-          Sign In
-        </button>
+        <div className={styles.headerControls}>
+          <LanguageSwitch />
+          <button className={styles.headerAction} onClick={() => navigate('/login')} type="button">
+            {messages.welcome.topSignIn}
+          </button>
+        </div>
       </header>
 
       <main className={styles.hero}>
         <div className={styles.badge}>
           <ShieldCheck size={16} />
-          <span>Trusted AI for Kazakhstan</span>
+          <span>{messages.welcome.badge}</span>
         </div>
 
         <div className={styles.copy}>
           <h1>
-            Your Legal &amp; Financial
+            {messages.welcome.titleLineOne}
             <br />
-            AI Co-Pilot
+            {messages.welcome.titleLineTwo}
           </h1>
-          <p>
-            Understand documents, loans, bureaucracy, and job offers in simple language without a
-            legal background.
-          </p>
+          <p>{messages.welcome.description}</p>
         </div>
 
         <div className={styles.actions}>
           <button className={styles.primaryAction} onClick={() => navigate('/register')} type="button">
-            Get Started - it's free
+            {messages.welcome.primaryAction}
           </button>
           <button className={styles.secondaryAction} onClick={() => navigate('/login')} type="button">
-            Sign In
+            {messages.welcome.secondaryAction}
           </button>
         </div>
 
-        <section className={styles.features} aria-label="Product features">
+        <section className={styles.features} aria-label={messages.common.productFeatures}>
           {features.map((feature) => (
-            <article key={feature.title} className={styles.featureCard}>
+            <article key={feature.key} className={styles.featureCard}>
               <span className={styles.featureIcon}>
                 <feature.icon size={18} />
               </span>
               <div className={styles.featureBody}>
-                <h2>{feature.title}</h2>
-                <p>{feature.description}</p>
+                <h2>{messages.navigation[feature.key]}</h2>
+                <p>{messages.welcome.features[feature.key]}</p>
               </div>
             </article>
           ))}
         </section>
       </main>
 
-      <footer className={styles.footer}>© 2026 AzamatAI · Built for Kazakhstan</footer>
+      <footer className={styles.footer}>{messages.welcome.footer}</footer>
     </div>
   );
 }

@@ -8,20 +8,22 @@ import {
 } from 'lucide-react';
 
 export type ModuleTone = 'cyan' | 'teal' | 'amber' | 'rose';
+export type ModuleKey =
+  | 'document-decoder'
+  | 'egov-navigator'
+  | 'loan-analyzer'
+  | 'job-offer-scanner';
+export type NavigationKey = 'dashboard' | ModuleKey;
 
 export interface ModuleDefinition {
-  key: 'document-decoder' | 'egov-navigator' | 'loan-analyzer' | 'job-offer-scanner';
-  title: string;
-  shortLabel: string;
+  key: ModuleKey;
   route: string;
   icon: LucideIcon;
   tone: ModuleTone;
-  description: string;
-  homeSummary: string;
 }
 
 export interface NavigationItem {
-  label: string;
+  key: NavigationKey;
   route: string;
   icon: LucideIcon;
 }
@@ -59,54 +61,38 @@ export const toneStyles: Record<
 export const modules: ModuleDefinition[] = [
   {
     key: 'document-decoder',
-    title: 'Document Decoder',
-    shortLabel: 'Document Decoder',
     route: '/dashboard/document-decoder',
     icon: FileText,
     tone: 'cyan',
-    description: 'Break down official letters, notices, and documents into plain-language next steps.',
-    homeSummary: 'Summarize official documents and surface deadlines, risks, and concrete actions.',
   },
   {
     key: 'egov-navigator',
-    title: 'eGov Navigator',
-    shortLabel: 'eGov Navigator',
     route: '/dashboard/egov-navigator',
     icon: Globe,
     tone: 'teal',
-    description: 'Turn a government task into a simple route through egov.kz and required paperwork.',
-    homeSummary: 'Explain what to prepare, where to apply, and how to finish each public service flow.',
   },
   {
     key: 'loan-analyzer',
-    title: 'Loan Analyzer',
-    shortLabel: 'Loan Analyzer',
     route: '/dashboard/loan-analyzer',
     icon: TrendingUp,
     tone: 'amber',
-    description: 'Estimate the true cost of a loan, spot fee pressure, and frame a practical recommendation.',
-    homeSummary: 'Compare total payment, overpayment, and warning signals before you accept the offer.',
   },
   {
     key: 'job-offer-scanner',
-    title: 'Job Offer Scanner',
-    shortLabel: 'Job Offer Scanner',
     route: '/dashboard/job-offer-scanner',
     icon: BriefcaseBusiness,
     tone: 'rose',
-    description: 'Check job descriptions for scam patterns, vague terms, and risky payment requests.',
-    homeSummary: 'Highlight red flags, assign a risk score, and explain how to respond safely.',
   },
 ];
 
 export const navigationItems: NavigationItem[] = [
   {
-    label: 'Dashboard',
+    key: 'dashboard',
     route: '/dashboard',
     icon: LayoutDashboard,
   },
-  ...modules.map(({ shortLabel, route, icon }) => ({
-    label: shortLabel,
+  ...modules.map(({ key, route, icon }) => ({
+    key,
     route,
     icon,
   })),

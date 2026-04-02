@@ -1,4 +1,4 @@
-import type { TextareaHTMLAttributes } from 'react';
+import { useId, type TextareaHTMLAttributes } from 'react';
 import styles from './Field.module.css';
 
 interface TextAreaFieldProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -7,7 +7,8 @@ interface TextAreaFieldProps extends TextareaHTMLAttributes<HTMLTextAreaElement>
 }
 
 export function TextAreaField({ label, hint, id, ...props }: TextAreaFieldProps) {
-  const fallbackId = id ?? label.toLowerCase().replace(/\s+/g, '-');
+  const generatedId = useId();
+  const fallbackId = id ?? generatedId;
 
   return (
     <label className={styles.field} htmlFor={fallbackId}>

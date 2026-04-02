@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react';
 import { TrendingUp } from 'lucide-react';
+import { useLanguage } from '@/shared/i18n/LanguageProvider';
 import { modules, toneStyles } from '@/shared/config/navigation';
 import { delay, formatCurrency, formatPercent } from '@/shared/lib/formatters';
 import { Button } from '@/shared/ui/Button';
@@ -40,7 +41,11 @@ function toNumber(value: string) {
   return Number(value.replace(/[^\d.]/g, ''));
 }
 
-function buildLoanResult(values: typeof demoForm): LoanResult {
+function buildLoanResult(
+  values: typeof demoForm,
+  copy: ReturnType<typeof useLanguage>['messages']['loanAnalyzer'],
+  locale: string,
+): LoanResult {
   const amount = toNumber(values.amount);
   const duration = toNumber(values.duration);
   const monthlyPayment = toNumber(values.monthlyPayment);
@@ -58,26 +63,28 @@ function buildLoanResult(values: typeof demoForm): LoanResult {
     effectiveRate,
     recommendation:
       effectiveRate > 20
-        ? 'This offer is expensive for the repayment horizon. Compare alternatives or negotiate fees before signing.'
-        : 'The pricing pressure is moderate, but you should still verify whether the insurance is optional.',
+        ? copy.recommendations.expensive
+        : copy.recommendations.moderate,
     warnings:
       insurance > 0
-        ? [
-            'Insurance may be optional and can materially change the total cost.',
-            'Commission-heavy offers often look cheaper only because the headline rate hides fees.',
-          ]
-        : ['Check early repayment penalties before accepting the agreement.'],
+        ? copy.warningsByInsurance.withInsurance
+        : copy.warningsByInsurance.withoutInsurance,
     riskLevel: effectiveRate > 22 ? 'high' : effectiveRate > 16 ? 'medium' : 'low',
     breakdown: [
-      { label: 'Principal', value: formatCurrency(amount) },
-      { label: 'Interest and spread', value: formatCurrency(totalPayment - amount - fees - insurance) },
-      { label: 'Fees', value: formatCurrency(fees) },
-      { label: 'Insurance', value: formatCurrency(insurance) },
+      { label: copy.breakdownLabels.principal, value: formatCurrency(amount, locale) },
+      {
+        label: copy.breakdownLabels.interest,
+        value: formatCurrency(totalPayment - amount - fees - insurance, locale),
+      },
+      { label: copy.breakdownLabels.fees, value: formatCurrency(fees, locale) },
+      { label: copy.breakdownLabels.insurance, value: formatCurrency(insurance, locale) },
     ],
   };
 }
 
 export function LoanAnalyzerView() {
+  const { messages, locale } = useLanguage();
+  const copy = messages.loanAnalyzer;
   const [form, setForm] = useState(demoForm);
   const [status, setStatus] = useState<ResultStatus>('idle');
   const [error, setError] = useState('');
@@ -89,7 +96,7 @@ export function LoanAnalyzerView() {
 
   const analyze = async (values: typeof demoForm) => {
     if (!values.amount || !values.duration || !values.monthlyPayment) {
-      setError('Amount, duration, and monthly payment are required.');
+      setError(copy.errorMessage);
       setResult(null);
       setStatus('idle');
       return;
@@ -98,7 +105,7 @@ export function LoanAnalyzerView() {
     setError('');
     setStatus('loading');
     await delay(950);
-    setResult(buildLoanResult(values));
+    setResult(buildLoanResult(values, copy, locale));
     setStatus('ready');
   };
 
@@ -116,16 +123,14 @@ export function LoanAnalyzerView() {
       <header className={sharedStyles.header}>
         <span className={sharedStyles.kicker}>
           <TrendingUp size={16} />
-          Loan Analyzer
+          {copy.kicker}
         </span>
         <div className={sharedStyles.headerRow}>
           <div className={sharedStyles.headingBlock}>
-            <h1>Make the true cost of a loan impossible to hide.</h1>
-            <p>
-              Use the key numbers from a loan offer to estimate total payment, overpayment, hidden pressure, and a practical recommendation.
-            </p>
+            <h1>{copy.title}</h1>
+            <p>{copy.description}</p>
           </div>
-          <span className={sharedStyles.toneBadge}>Cost pressure</span>
+          <span className={sharedStyles.toneBadge}>{copy.toneBadge}</span>
         </div>
       </header>
 
@@ -134,16 +139,16 @@ export function LoanAnalyzerView() {
           <Surface className={sharedStyles.panel}>
             <div className={sharedStyles.panelBody}>
               <div className={sharedStyles.gridTwo}>
-                <TextField label="Loan amount" placeholder="1000000" value={form.amount} onChange={(event) => updateField('amount', event.target.value)} />
-                <TextField label="Duration (months)" placeholder="24" value={form.duration} onChange={(event) => updateField('duration', event.target.value)} />
-                <TextField label="Monthly payment" placeholder="52000" value={form.monthlyPayment} onChange={(event) => updateField('monthlyPayment', event.target.value)} />
-                <TextField label="Fees" placeholder="15000" value={form.fees} onChange={(event) => updateField('fees', event.target.value)} />
+                <TextField label={copy.labels.amount} placeholder="1000000" value={form.amount} onChange={(event) => updateField('amount', event.target.value)} />
+                <TextField label={copy.labels.duration} placeholder="24" value={form.duration} onChange={(event) => updateField('duration', event.target.value)} />
+                <TextField label={copy.labels.monthlyPayment} placeholder="52000" value={form.monthlyPayment} onChange={(event) => updateField('monthlyPayment', event.target.value)} />
+                <TextField label={copy.labels.fees} placeholder="15000" value={form.fees} onChange={(event) => updateField('fees', event.target.value)} />
               </div>
 
-              <TextField label="Insurance" placeholder="8000" value={form.insurance} onChange={(event) => updateField('insurance', event.target.value)} />
+              <TextField label={copy.labels.insurance} placeholder="8000" value={form.insurance} onChange={(event) => updateField('insurance', event.target.value)} />
 
               <div className={sharedStyles.actionRow}>
-                <Button onClick={() => analyze(form)}>Analyze loan</Button>
+                <Button onClick={() => analyze(form)}>{copy.analyzeButton}</Button>
                 <Button
                   variant="secondary"
                   onClick={() => {
@@ -151,7 +156,7 @@ export function LoanAnalyzerView() {
                     void analyze(demoForm);
                   }}
                 >
-                  Try demo
+                  {copy.tryDemoButton}
                 </Button>
               </div>
             </div>
@@ -162,12 +167,12 @@ export function LoanAnalyzerView() {
             {error && <ErrorAlert message={error} />}
             {status === 'idle' && !result && (
               <EmptyState
-                title="No calculation yet"
-                message="Enter the core loan terms to estimate the true total payment and risk level."
+                title={copy.emptyTitle}
+                message={copy.emptyMessage}
               />
             )}
             {status === 'loading' && (
-              <LoadingState title="Calculating loan" message="Estimating total payment, effective rate pressure, and fee load." />
+              <LoadingState title={copy.loadingTitle} message={copy.loadingMessage} />
             )}
             {status === 'ready' && result && (
               <Surface className={sharedStyles.panel}>
@@ -175,30 +180,36 @@ export function LoanAnalyzerView() {
                   <div className={sharedStyles.headerRow}>
                     <div className={sharedStyles.gridTwo}>
                       <div className={sharedStyles.metricCard}>
-                        <span className={sharedStyles.metricLabel}>Total payment</span>
-                        <strong className={sharedStyles.metricValue}>{formatCurrency(result.totalPayment)}</strong>
+                        <span className={sharedStyles.metricLabel}>{copy.totalPayment}</span>
+                        <strong className={sharedStyles.metricValue}>{formatCurrency(result.totalPayment, locale)}</strong>
                       </div>
                       <div className={sharedStyles.metricCard}>
-                        <span className={sharedStyles.metricLabel}>Overpayment</span>
-                        <strong className={sharedStyles.metricValue}>{formatCurrency(result.overpayment)}</strong>
+                        <span className={sharedStyles.metricLabel}>{copy.overpayment}</span>
+                        <strong className={sharedStyles.metricValue}>{formatCurrency(result.overpayment, locale)}</strong>
                       </div>
                     </div>
                     <RiskBadge level={result.riskLevel}>
-                      {result.riskLevel === 'high' ? 'High risk' : result.riskLevel === 'medium' ? 'Medium risk' : 'Low risk'}
+                      {result.riskLevel === 'high'
+                        ? copy.highRisk
+                        : result.riskLevel === 'medium'
+                          ? copy.mediumRisk
+                          : copy.lowRisk}
                     </RiskBadge>
                   </div>
 
-                  <ResultSection title="Overpayment ratio">
+                  <ResultSection title={copy.overpaymentRatio}>
                     <div className={sharedStyles.callout}>
-                      <strong>{formatPercent(result.overpaymentPercent)}</strong>
-                      <p className={sharedStyles.muted}>Effective pressure estimate: {formatPercent(result.effectiveRate)}</p>
+                      <strong>{formatPercent(result.overpaymentPercent, locale)}</strong>
+                      <p className={sharedStyles.muted}>
+                        {copy.effectivePressureEstimate}: {formatPercent(result.effectiveRate, locale)}
+                      </p>
                       <div className={sharedStyles.progressTrack}>
                         <div className={sharedStyles.progressBar} style={{ width: `${Math.min(result.overpaymentPercent, 100)}%` }} />
                       </div>
                     </div>
                   </ResultSection>
 
-                  <ResultSection title="Cost breakdown">
+                  <ResultSection title={copy.costBreakdown}>
                     <div className={sharedStyles.keyValueList}>
                       {result.breakdown.map((item) => (
                         <div key={item.label} className={sharedStyles.keyValueRow}>
@@ -209,14 +220,14 @@ export function LoanAnalyzerView() {
                     </div>
                   </ResultSection>
 
-                  <ResultSection title="Recommendation">
+                  <ResultSection title={copy.recommendation}>
                     <div className={sharedStyles.callout}>
-                      <strong>Decision signal</strong>
+                      <strong>{copy.decisionSignal}</strong>
                       <p>{result.recommendation}</p>
                     </div>
                   </ResultSection>
 
-                  <ResultSection title="Warnings">
+                  <ResultSection title={copy.warnings}>
                     <div className={sharedStyles.warningStack}>
                       {result.warnings.map((warning) => (
                         <div key={warning} className={sharedStyles.warningItem}>

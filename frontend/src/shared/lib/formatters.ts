@@ -4,14 +4,18 @@ export function delay(duration = 900) {
   });
 }
 
-export function formatCurrency(value: number) {
-  return new Intl.NumberFormat('ru-KZ', {
+export function formatCurrency(value: number, locale = 'ru-KZ') {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: 'KZT',
     maximumFractionDigits: 0,
   }).format(value);
 }
 
-export function formatPercent(value: number, digits = 1) {
-  return `${value.toFixed(digits)}%`;
+export function formatPercent(value: number, locale = 'ru-KZ', digits = 1) {
+  return new Intl.NumberFormat(locale, {
+    style: 'percent',
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(value / 100);
 }

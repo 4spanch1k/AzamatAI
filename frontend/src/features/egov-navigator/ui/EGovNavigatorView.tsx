@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react';
 import { Globe } from 'lucide-react';
+import { useLanguage } from '@/shared/i18n/LanguageProvider';
 import { modules, toneStyles } from '@/shared/config/navigation';
 import { delay } from '@/shared/lib/formatters';
 import { Button } from '@/shared/ui/Button';
@@ -26,41 +27,41 @@ interface NavigatorResult {
 
 const moduleMeta = modules.find((module) => module.key === 'egov-navigator')!;
 const tone = toneStyles[moduleMeta.tone];
-const demoGoal = 'I need to register as an individual entrepreneur in Kazakhstan.';
 
-function buildNavigatorResult(goal: string): NavigatorResult {
-  if (goal.toLowerCase().includes('certificate')) {
+function buildNavigatorResult(
+  goal: string,
+  copy: ReturnType<typeof useLanguage>['messages']['egovNavigator'],
+): NavigatorResult {
+  const normalized = goal.toLowerCase();
+
+  if (
+    normalized.includes('certificate') ||
+    normalized.includes('справк') ||
+    normalized.includes('анықтама')
+  ) {
     return {
-      goal: 'Obtain a digital certificate or reference through eGov',
-      documents: ['IIN', 'Phone number linked to eGov account', 'Digital signature or OTP access'],
-      steps: [
-        { title: 'Open egov.kz and sign in', description: 'Use EDS, QR, or OTP depending on the service.' },
-        { title: 'Search for the certificate service', description: 'Use the portal search and verify the service owner.' },
-        { title: 'Request the certificate', description: 'Submit the request and check whether a fee applies.' },
-        { title: 'Download or forward the result', description: 'Store the PDF and verify expiry if the document has one.' },
-      ],
-      whereToApply: 'egov.kz portal or the mobile eGov app',
-      notes: ['Some certificates are instant; others require manual review.', 'Verify whether the receiving institution accepts a digital copy.'],
+      goal: copy.results.certificate.goal,
+      documents: copy.results.certificate.documents,
+      steps: copy.results.certificate.steps,
+      whereToApply: copy.results.certificate.whereToApply,
+      notes: copy.results.certificate.notes,
       riskLevel: 'low',
     };
   }
 
   return {
-    goal: 'Register as an individual entrepreneur (IP)',
-    documents: ['Identity card', 'IIN', 'EDS or mobile signature access'],
-    steps: [
-      { title: 'Sign in to egov.kz', description: 'Use your digital signature or another verified login option.' },
-      { title: 'Open the business registration service', description: 'Look for IP registration under business services.' },
-      { title: 'Fill in the activity details', description: 'Choose business codes and verify contact information.' },
-      { title: 'Submit and monitor status', description: 'Store the confirmation and wait for processing.' },
-    ],
-    whereToApply: 'egov.kz, business services section',
-    notes: ['Check whether your chosen activity code matches the real business model.', 'Keep the registration confirmation for tax and bank onboarding.'],
+    goal: copy.results.entrepreneur.goal,
+    documents: copy.results.entrepreneur.documents,
+    steps: copy.results.entrepreneur.steps,
+    whereToApply: copy.results.entrepreneur.whereToApply,
+    notes: copy.results.entrepreneur.notes,
     riskLevel: 'medium',
   };
 }
 
 export function EGovNavigatorView() {
+  const { messages } = useLanguage();
+  const copy = messages.egovNavigator;
   const [goal, setGoal] = useState('');
   const [status, setStatus] = useState<ResultStatus>('idle');
   const [error, setError] = useState('');
@@ -68,7 +69,7 @@ export function EGovNavigatorView() {
 
   const run = async (source: string) => {
     if (!source.trim()) {
-      setError('Describe the government task first.');
+      setError(copy.errorMessage);
       setResult(null);
       setStatus('idle');
       return;
@@ -77,15 +78,9 @@ export function EGovNavigatorView() {
     setError('');
     setStatus('loading');
     await delay(850);
-    setResult(buildNavigatorResult(source));
+    setResult(buildNavigatorResult(source, copy));
     setStatus('ready');
   };
-
-  const examples = [
-    'Register an individual entrepreneur',
-    'Get a certificate',
-    'Pay a tax debt',
-  ];
 
   return (
     <div
@@ -101,17 +96,14 @@ export function EGovNavigatorView() {
       <header className={sharedStyles.header}>
         <span className={sharedStyles.kicker}>
           <Globe size={16} />
-          eGov Navigator
+          {copy.kicker}
         </span>
         <div className={sharedStyles.headerRow}>
           <div className={sharedStyles.headingBlock}>
-            <h1>Turn a public-service goal into a usable route.</h1>
-            <p>
-              Describe what you need to do on egov.kz and get documents, steps, application point,
-              and caution notes in one structured answer.
-            </p>
+            <h1>{copy.title}</h1>
+            <p>{copy.description}</p>
           </div>
-          <span className={sharedStyles.toneBadge}>Step-by-step guide</span>
+          <span className={sharedStyles.toneBadge}>{copy.toneBadge}</span>
         </div>
       </header>
 
@@ -120,18 +112,18 @@ export function EGovNavigatorView() {
           <Surface className={sharedStyles.panel}>
             <div className={sharedStyles.panelBody}>
               <TextAreaField
-                hint="One task per request works best"
-                label="What do you need to do?"
-                placeholder="Describe the government service you need..."
+                hint={copy.fieldHint}
+                label={copy.fieldLabel}
+                placeholder={copy.fieldPlaceholder}
                 rows={12}
                 value={goal}
                 onChange={(event) => setGoal(event.target.value)}
               />
 
               <div>
-                <strong>Popular requests</strong>
+                <strong>{copy.popularRequests}</strong>
                 <div className={sharedStyles.chips}>
-                  {examples.map((example) => (
+                  {copy.examples.map((example) => (
                     <button
                       key={example}
                       className={`${sharedStyles.chip} ${goal === example ? sharedStyles.chipActive : ''}`}
@@ -145,15 +137,15 @@ export function EGovNavigatorView() {
               </div>
 
               <div className={sharedStyles.actionRow}>
-                <Button onClick={() => run(goal)}>Show steps</Button>
+                <Button onClick={() => run(goal)}>{copy.showStepsButton}</Button>
                 <Button
                   variant="secondary"
                   onClick={() => {
-                    setGoal(demoGoal);
-                    void run(demoGoal);
+                    setGoal(copy.demoGoal);
+                    void run(copy.demoGoal);
                   }}
                 >
-                  Try demo
+                  {copy.tryDemoButton}
                 </Button>
               </div>
             </div>
@@ -164,24 +156,26 @@ export function EGovNavigatorView() {
             {error && <ErrorAlert message={error} />}
             {status === 'idle' && !result && (
               <EmptyState
-                title="No guide yet"
-                message="Describe the outcome you need and the navigator will map the route, documents, and next steps."
+                title={copy.emptyTitle}
+                message={copy.emptyMessage}
               />
             )}
             {status === 'loading' && (
-              <LoadingState title="Building route" message="Matching the request to the right document list and portal flow." />
+              <LoadingState title={copy.loadingTitle} message={copy.loadingMessage} />
             )}
             {status === 'ready' && result && (
               <Surface className={sharedStyles.panel}>
                 <div className={sharedStyles.panelBody}>
                   <div className={sharedStyles.headerRow}>
-                    <ResultSection eyebrow="Goal" title={result.goal}>
-                      <p className={sharedStyles.muted}>Prepared as a practical route through the eGov experience.</p>
+                    <ResultSection eyebrow={copy.goalEyebrow} title={result.goal}>
+                      <p className={sharedStyles.muted}>{copy.goalPrepared}</p>
                     </ResultSection>
-                    <RiskBadge level={result.riskLevel}>{result.riskLevel === 'low' ? 'Low friction' : 'Needs care'}</RiskBadge>
+                    <RiskBadge level={result.riskLevel}>
+                      {result.riskLevel === 'low' ? copy.lowFriction : copy.needsCare}
+                    </RiskBadge>
                   </div>
 
-                  <ResultSection title="Required documents">
+                  <ResultSection title={copy.requiredDocuments}>
                     <div className={sharedStyles.list}>
                       {result.documents.map((item) => (
                         <div key={item} className={sharedStyles.listItem}>
@@ -192,7 +186,7 @@ export function EGovNavigatorView() {
                     </div>
                   </ResultSection>
 
-                  <ResultSection title="Steps">
+                  <ResultSection title={copy.stepsTitle}>
                     <div className={sharedStyles.numberedList}>
                       {result.steps.map((step, index) => (
                         <div key={step.title} className={sharedStyles.numberItem}>
@@ -206,14 +200,14 @@ export function EGovNavigatorView() {
                     </div>
                   </ResultSection>
 
-                  <ResultSection title="Where to apply">
+                  <ResultSection title={copy.whereToApply}>
                     <div className={sharedStyles.callout}>
                       <strong>{result.whereToApply}</strong>
-                      <p>Check the exact service owner and whether in-person confirmation is still required.</p>
+                      <p>{copy.whereToApplyNote}</p>
                     </div>
                   </ResultSection>
 
-                  <ResultSection title="Notes and warnings">
+                  <ResultSection title={copy.notesWarnings}>
                     <div className={sharedStyles.warningStack}>
                       {result.notes.map((item) => (
                         <div key={item} className={sharedStyles.warningItem}>
