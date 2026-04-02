@@ -4,6 +4,7 @@ export const translations = {
     common: {
       loadingTitle: 'Открываем AzamatAI',
       loadingMessage: 'Подготавливаем следующий экран.',
+      requestFailed: 'Запрос не выполнился. Попробуйте ещё раз.',
       dashboardNavigation: 'Навигация панели',
       openNavigation: 'Открыть навигацию',
       languageSwitch: 'Переключение языка',
@@ -159,6 +160,11 @@ export const translations = {
       loadingTitle: 'AI анализирует документ',
       loadingMessage: 'Выделяем тип документа, ключевой срок и рекомендуемые действия.',
       errorMessage: 'Добавьте текст документа или выберите демо-пример.',
+      riskLabels: {
+        low: 'Низкий риск',
+        medium: 'Средний риск',
+        high: 'Высокий риск',
+      },
       demoText:
         'Уведомление о налоговой задолженности: просим оплатить указанную сумму в течение 10 календарных дней со дня получения настоящего уведомления.',
       detectedType: 'Определённый тип',
@@ -422,6 +428,7 @@ export const translations = {
     common: {
       loadingTitle: 'AzamatAI ашылып жатыр',
       loadingMessage: 'Келесі экран дайындалып жатыр.',
+      requestFailed: 'Сұрау орындалмады. Қайта көріңіз.',
       dashboardNavigation: 'Панель навигациясы',
       openNavigation: 'Навигацияны ашу',
       languageSwitch: 'Тілді ауыстыру',
@@ -573,6 +580,11 @@ export const translations = {
       loadingTitle: 'AI құжатты талдап жатыр',
       loadingMessage: 'Құжат түрін, негізгі мерзімді және ұсынылатын әрекеттерді бөліп көрсетіп жатырмыз.',
       errorMessage: 'Құжат мәтінін енгізіңіз немесе демо-мысалды таңдаңыз.',
+      riskLabels: {
+        low: 'Төмен тәуекел',
+        medium: 'Орташа тәуекел',
+        high: 'Жоғары тәуекел',
+      },
       demoText:
         'Салық берешегі туралы хабарлама: осы хабарламаны алған күннен бастап 10 күнтізбелік күн ішінде көрсетілген соманы төлеуіңіз сұралады.',
       detectedType: 'Анықталған түр',

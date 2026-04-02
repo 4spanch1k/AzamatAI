@@ -1,8 +1,9 @@
 import { useState, type CSSProperties } from 'react';
 import { Globe } from 'lucide-react';
+import { buildEgovRoute, type EGovRouteResult } from '@/features/egov-navigator/service';
+import { getApiErrorMessage } from '@/shared/api/client';
 import { useLanguage } from '@/shared/i18n/LanguageProvider';
 import { modules, toneStyles } from '@/shared/config/navigation';
-import { delay } from '@/shared/lib/formatters';
 import { Button } from '@/shared/ui/Button';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { ErrorAlert } from '@/shared/ui/ErrorAlert';
@@ -16,48 +17,8 @@ import { TextAreaField } from '@/shared/ui/TextAreaField';
 
 type ResultStatus = 'idle' | 'loading' | 'ready';
 
-interface NavigatorResult {
-  goal: string;
-  documents: string[];
-  steps: Array<{ title: string; description: string }>;
-  whereToApply: string;
-  notes: string[];
-  riskLevel: 'low' | 'medium';
-}
-
 const moduleMeta = modules.find((module) => module.key === 'egov-navigator')!;
 const tone = toneStyles[moduleMeta.tone];
-
-function buildNavigatorResult(
-  goal: string,
-  copy: ReturnType<typeof useLanguage>['messages']['egovNavigator'],
-): NavigatorResult {
-  const normalized = goal.toLowerCase();
-
-  if (
-    normalized.includes('certificate') ||
-    normalized.includes('справк') ||
-    normalized.includes('анықтама')
-  ) {
-    return {
-      goal: copy.results.certificate.goal,
-      documents: copy.results.certificate.documents,
-      steps: copy.results.certificate.steps,
-      whereToApply: copy.results.certificate.whereToApply,
-      notes: copy.results.certificate.notes,
-      riskLevel: 'low',
-    };
-  }
-
-  return {
-    goal: copy.results.entrepreneur.goal,
-    documents: copy.results.entrepreneur.documents,
-    steps: copy.results.entrepreneur.steps,
-    whereToApply: copy.results.entrepreneur.whereToApply,
-    notes: copy.results.entrepreneur.notes,
-    riskLevel: 'medium',
-  };
-}
 
 export function EGovNavigatorView() {
   const { messages } = useLanguage();
@@ -65,7 +26,7 @@ export function EGovNavigatorView() {
   const [goal, setGoal] = useState('');
   const [status, setStatus] = useState<ResultStatus>('idle');
   const [error, setError] = useState('');
-  const [result, setResult] = useState<NavigatorResult | null>(null);
+  const [result, setResult] = useState<EGovRouteResult | null>(null);
 
   const run = async (source: string) => {
     if (!source.trim()) {
@@ -77,9 +38,16 @@ export function EGovNavigatorView() {
 
     setError('');
     setStatus('loading');
-    await delay(850);
-    setResult(buildNavigatorResult(source, copy));
-    setStatus('ready');
+
+    try {
+      const nextResult = await buildEgovRoute(source);
+      setResult(nextResult);
+      setStatus('ready');
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, messages.common.requestFailed));
+      setResult(null);
+      setStatus('idle');
+    }
   };
 
   return (
@@ -192,7 +160,7 @@ export function EGovNavigatorView() {
 
                   <ResultSection title={copy.requiredDocuments}>
                     <div className={sharedStyles.list}>
-                      {result.documents.map((item) => (
+                      {result.requiredDocuments.map((item) => (
                         <div key={item} className={sharedStyles.listItem}>
                           <span className={sharedStyles.listMarker}>✓</span>
                           <p className={sharedStyles.muted}>{item}</p>
@@ -224,7 +192,7 @@ export function EGovNavigatorView() {
 
                   <ResultSection title={copy.notesWarnings}>
                     <div className={sharedStyles.warningStack}>
-                      {result.notes.map((item) => (
+                      {result.warnings.map((item) => (
                         <div key={item} className={sharedStyles.warningItem}>
                           <span className={sharedStyles.listMarker}>!</span>
                           <p className={sharedStyles.muted}>{item}</p>

@@ -1,8 +1,9 @@
 import { useState, type CSSProperties } from 'react';
 import { BriefcaseBusiness } from 'lucide-react';
+import { scanJob, type JobScanResult } from '@/features/job-offer-scanner/service';
+import { getApiErrorMessage } from '@/shared/api/client';
 import { useLanguage } from '@/shared/i18n/LanguageProvider';
 import { modules, toneStyles } from '@/shared/config/navigation';
-import { delay } from '@/shared/lib/formatters';
 import { Button } from '@/shared/ui/Button';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { ErrorAlert } from '@/shared/ui/ErrorAlert';
@@ -16,61 +17,8 @@ import { TextAreaField } from '@/shared/ui/TextAreaField';
 
 type ResultStatus = 'idle' | 'loading' | 'ready';
 
-interface JobResult {
-  score: number;
-  riskLevel: 'medium' | 'high';
-  flags: string[];
-  explanation: string;
-  recommendation: string;
-}
-
 const moduleMeta = modules.find((module) => module.key === 'job-offer-scanner')!;
 const tone = toneStyles[moduleMeta.tone];
-
-function buildJobResult(
-  text: string,
-  copy: ReturnType<typeof useLanguage>['messages']['jobOfferScanner'],
-): JobResult {
-  const normalized = text.toLowerCase();
-  const flags = [];
-
-  if (
-    normalized.includes('fee') ||
-    normalized.includes('payment') ||
-    normalized.includes('взнос') ||
-    normalized.includes('төлем')
-  ) {
-    flags.push(copy.flags.upfrontPayment);
-  }
-  if (
-    normalized.includes('no experience') ||
-    normalized.includes('без опыта') ||
-    normalized.includes('тәжірибе')
-  ) {
-    flags.push(copy.flags.noExperience);
-  }
-  if (
-    normalized.includes('remote') ||
-    normalized.includes('удал') ||
-    normalized.includes('қашықтан')
-  ) {
-    flags.push(copy.flags.remoteOnly);
-  }
-
-  return {
-    score: flags.length >= 3 ? 8.1 : 5.6,
-    riskLevel: flags.length >= 3 ? 'high' : 'medium',
-    flags,
-    explanation:
-      flags.length >= 3
-        ? copy.explanations.high
-        : copy.explanations.medium,
-    recommendation:
-      flags.length >= 3
-        ? copy.recommendations.high
-        : copy.recommendations.medium,
-  };
-}
 
 export function JobOfferScannerView() {
   const { messages } = useLanguage();
@@ -78,7 +26,7 @@ export function JobOfferScannerView() {
   const [jobText, setJobText] = useState('');
   const [status, setStatus] = useState<ResultStatus>('idle');
   const [error, setError] = useState('');
-  const [result, setResult] = useState<JobResult | null>(null);
+  const [result, setResult] = useState<JobScanResult | null>(null);
 
   const scan = async (source: string) => {
     if (!source.trim()) {
@@ -90,9 +38,16 @@ export function JobOfferScannerView() {
 
     setError('');
     setStatus('loading');
-    await delay(820);
-    setResult(buildJobResult(source, copy));
-    setStatus('ready');
+
+    try {
+      const nextResult = await scanJob(source);
+      setResult(nextResult);
+      setStatus('ready');
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, messages.common.requestFailed));
+      setStatus('idle');
+      setResult(null);
+    }
   };
 
   return (
@@ -202,7 +157,11 @@ export function JobOfferScannerView() {
                       </div>
                     </div>
                     <RiskBadge level={result.riskLevel}>
-                      {result.riskLevel === 'high' ? copy.highRisk : copy.mediumRisk}
+                      {result.riskLevel === 'high'
+                        ? copy.highRisk
+                        : result.riskLevel === 'medium'
+                          ? copy.mediumRisk
+                          : copy.lowRisk}
                     </RiskBadge>
                   </div>
 

@@ -1,8 +1,9 @@
 import { useState, type CSSProperties } from 'react';
 import { FileText } from 'lucide-react';
+import { analyzeDocument, type DocumentAnalysisResult } from '@/features/document-decoder/service';
+import { getApiErrorMessage } from '@/shared/api/client';
 import { useLanguage } from '@/shared/i18n/LanguageProvider';
 import { modules, toneStyles } from '@/shared/config/navigation';
-import { delay } from '@/shared/lib/formatters';
 import { Button } from '@/shared/ui/Button';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { ErrorAlert } from '@/shared/ui/ErrorAlert';
@@ -16,49 +17,14 @@ import { TextAreaField } from '@/shared/ui/TextAreaField';
 
 type ResultStatus = 'idle' | 'loading' | 'ready';
 
-interface DocumentResult {
-  type: string;
-  summary: string;
-  actions: string[];
-  deadline: string;
-  riskLevel: 'low' | 'medium' | 'high';
-  riskLabel: string;
-  warnings: string[];
-}
-
 const moduleMeta = modules.find((module) => module.key === 'document-decoder')!;
 const tone = toneStyles[moduleMeta.tone];
 
-function buildDocumentResult(source: string, copy: ReturnType<typeof useLanguage>['messages']['documentDecoder']): DocumentResult {
-  const normalized = source.toLowerCase();
-
-  if (
-    normalized.includes('court') ||
-    normalized.includes('claim') ||
-    normalized.includes('суд') ||
-    normalized.includes('иск') ||
-    normalized.includes('талап')
-  ) {
-    return {
-      type: copy.results.court.type,
-      summary: copy.results.court.summary,
-      actions: copy.results.court.actions,
-      deadline: copy.results.court.deadline,
-      riskLevel: 'high',
-      riskLabel: copy.results.court.riskLabel,
-      warnings: copy.results.court.warnings,
-    };
-  }
-
-  return {
-    type: copy.results.tax.type,
-    summary: copy.results.tax.summary,
-    actions: copy.results.tax.actions,
-    deadline: copy.results.tax.deadline,
-    riskLevel: 'medium',
-    riskLabel: copy.results.tax.riskLabel,
-    warnings: copy.results.tax.warnings,
-  };
+function getDocumentRiskLabel(
+  riskLevel: DocumentAnalysisResult['riskLevel'],
+  copy: ReturnType<typeof useLanguage>['messages']['documentDecoder'],
+) {
+  return copy.riskLabels[riskLevel];
 }
 
 export function DocumentDecoderView() {
@@ -67,7 +33,7 @@ export function DocumentDecoderView() {
   const [documentText, setDocumentText] = useState('');
   const [status, setStatus] = useState<ResultStatus>('idle');
   const [error, setError] = useState('');
-  const [result, setResult] = useState<DocumentResult | null>(null);
+  const [result, setResult] = useState<DocumentAnalysisResult | null>(null);
 
   const analyze = async (source: string) => {
     if (!source.trim()) {
@@ -79,9 +45,16 @@ export function DocumentDecoderView() {
 
     setError('');
     setStatus('loading');
-    await delay(900);
-    setResult(buildDocumentResult(source, copy));
-    setStatus('ready');
+
+    try {
+      const nextResult = await analyzeDocument(source);
+      setResult(nextResult);
+      setStatus('ready');
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, messages.common.requestFailed));
+      setResult(null);
+      setStatus('idle');
+    }
   };
 
   return (
@@ -190,10 +163,10 @@ export function DocumentDecoderView() {
               <Surface className={sharedStyles.panel}>
                 <div className={sharedStyles.panelBody}>
                   <div className={sharedStyles.headerRow}>
-                    <ResultSection eyebrow={copy.detectedType} title={result.type}>
+                    <ResultSection eyebrow={copy.detectedType} title={result.documentType}>
                       <p className={sharedStyles.muted}>{result.summary}</p>
                     </ResultSection>
-                    <RiskBadge level={result.riskLevel}>{result.riskLabel}</RiskBadge>
+                    <RiskBadge level={result.riskLevel}>{getDocumentRiskLabel(result.riskLevel, copy)}</RiskBadge>
                   </div>
 
                   <ResultSection title={copy.actionSteps}>
@@ -209,7 +182,7 @@ export function DocumentDecoderView() {
 
                   <ResultSection title={copy.deadline}>
                     <div className={sharedStyles.callout}>
-                      <strong>{result.deadline}</strong>
+                      <strong>{result.deadline || copy.deadlineNote}</strong>
                       <p>{copy.deadlineNote}</p>
                     </div>
                   </ResultSection>

@@ -1,8 +1,10 @@
 import { useState, type CSSProperties } from 'react';
 import { TrendingUp } from 'lucide-react';
+import { analyzeLoan, type LoanAnalysisResult, type LoanAnalyzerPayload } from '@/features/loan-analyzer/service';
+import { getApiErrorMessage } from '@/shared/api/client';
 import { useLanguage } from '@/shared/i18n/LanguageProvider';
 import { modules, toneStyles } from '@/shared/config/navigation';
-import { delay, formatCurrency, formatPercent } from '@/shared/lib/formatters';
+import { formatCurrency, formatPercent } from '@/shared/lib/formatters';
 import { Button } from '@/shared/ui/Button';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { ErrorAlert } from '@/shared/ui/ErrorAlert';
@@ -15,17 +17,6 @@ import { Surface } from '@/shared/ui/Surface';
 import { TextField } from '@/shared/ui/TextField';
 
 type ResultStatus = 'idle' | 'loading' | 'ready';
-
-interface LoanResult {
-  totalPayment: number;
-  overpayment: number;
-  overpaymentPercent: number;
-  effectiveRate: number;
-  recommendation: string;
-  warnings: string[];
-  riskLevel: 'low' | 'medium' | 'high';
-  breakdown: Array<{ label: string; value: string }>;
-}
 
 const moduleMeta = modules.find((module) => module.key === 'loan-analyzer')!;
 const tone = toneStyles[moduleMeta.tone];
@@ -45,49 +36,19 @@ const autoLoanForm = {
 };
 const loanPresetKeys = ['consumer', 'auto'] as const;
 type LoanPresetKey = (typeof loanPresetKeys)[number];
+type LoanFormValues = typeof demoForm;
 
 function toNumber(value: string) {
   return Number(value.replace(/[^\d.]/g, ''));
 }
 
-function buildLoanResult(
-  values: typeof demoForm,
-  copy: ReturnType<typeof useLanguage>['messages']['loanAnalyzer'],
-  locale: string,
-): LoanResult {
-  const amount = toNumber(values.amount);
-  const duration = toNumber(values.duration);
-  const monthlyPayment = toNumber(values.monthlyPayment);
-  const fees = toNumber(values.fees);
-  const insurance = toNumber(values.insurance);
-  const totalPayment = monthlyPayment * duration + fees + insurance;
-  const overpayment = totalPayment - amount;
-  const overpaymentPercent = (overpayment / amount) * 100;
-  const effectiveRate = overpaymentPercent / 1.24;
-
+function buildPayload(values: LoanFormValues): LoanAnalyzerPayload {
   return {
-    totalPayment,
-    overpayment,
-    overpaymentPercent,
-    effectiveRate,
-    recommendation:
-      effectiveRate > 20
-        ? copy.recommendations.expensive
-        : copy.recommendations.moderate,
-    warnings:
-      insurance > 0
-        ? copy.warningsByInsurance.withInsurance
-        : copy.warningsByInsurance.withoutInsurance,
-    riskLevel: effectiveRate > 22 ? 'high' : effectiveRate > 16 ? 'medium' : 'low',
-    breakdown: [
-      { label: copy.breakdownLabels.principal, value: formatCurrency(amount, locale) },
-      {
-        label: copy.breakdownLabels.interest,
-        value: formatCurrency(totalPayment - amount - fees - insurance, locale),
-      },
-      { label: copy.breakdownLabels.fees, value: formatCurrency(fees, locale) },
-      { label: copy.breakdownLabels.insurance, value: formatCurrency(insurance, locale) },
-    ],
+    loanAmount: toNumber(values.amount),
+    months: toNumber(values.duration),
+    monthlyPayment: toNumber(values.monthlyPayment),
+    fees: toNumber(values.fees),
+    insurance: toNumber(values.insurance),
   };
 }
 
@@ -97,13 +58,13 @@ export function LoanAnalyzerView() {
   const [form, setForm] = useState(demoForm);
   const [status, setStatus] = useState<ResultStatus>('idle');
   const [error, setError] = useState('');
-  const [result, setResult] = useState<LoanResult | null>(null);
+  const [result, setResult] = useState<LoanAnalysisResult | null>(null);
 
-  const updateField = (field: keyof typeof demoForm, value: string) => {
+  const updateField = (field: keyof LoanFormValues, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const analyze = async (values: typeof demoForm) => {
+  const analyze = async (values: LoanFormValues) => {
     if (!values.amount || !values.duration || !values.monthlyPayment) {
       setError(copy.errorMessage);
       setResult(null);
@@ -113,9 +74,16 @@ export function LoanAnalyzerView() {
 
     setError('');
     setStatus('loading');
-    await delay(950);
-    setResult(buildLoanResult(values, copy, locale));
-    setStatus('ready');
+
+    try {
+      const nextResult = await analyzeLoan(buildPayload(values));
+      setResult(nextResult);
+      setStatus('ready');
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, messages.common.requestFailed));
+      setResult(null);
+      setStatus('idle');
+    }
   };
 
   return (
@@ -256,19 +224,30 @@ export function LoanAnalyzerView() {
 
                   <ResultSection title={copy.costBreakdown}>
                     <div className={sharedStyles.keyValueList}>
-                      {result.breakdown.map((item) => (
-                        <div key={item.label} className={sharedStyles.keyValueRow}>
-                          <span>{item.label}</span>
-                          <strong>{item.value}</strong>
-                        </div>
-                      ))}
+                      <div className={sharedStyles.keyValueRow}>
+                        <span>{copy.breakdownLabels.principal}</span>
+                        <strong>{formatCurrency(result.costBreakdown.principal, locale)}</strong>
+                      </div>
+                      <div className={sharedStyles.keyValueRow}>
+                        <span>{copy.breakdownLabels.interest}</span>
+                        <strong>{formatCurrency(result.costBreakdown.interest, locale)}</strong>
+                      </div>
+                      <div className={sharedStyles.keyValueRow}>
+                        <span>{copy.breakdownLabels.fees}</span>
+                        <strong>{formatCurrency(result.costBreakdown.fees, locale)}</strong>
+                      </div>
+                      <div className={sharedStyles.keyValueRow}>
+                        <span>{copy.breakdownLabels.insurance}</span>
+                        <strong>{formatCurrency(result.costBreakdown.insurance, locale)}</strong>
+                      </div>
                     </div>
                   </ResultSection>
 
                   <ResultSection title={copy.recommendation}>
                     <div className={sharedStyles.callout}>
                       <strong>{copy.decisionSignal}</strong>
-                      <p>{result.recommendation}</p>
+                      <p>{result.summary}</p>
+                      <p className={sharedStyles.muted}>{result.recommendation}</p>
                     </div>
                   </ResultSection>
 
