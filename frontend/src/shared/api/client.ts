@@ -22,6 +22,31 @@ function extractErrorMessage(payload: unknown) {
   if (typeof detail === 'string' && detail.trim()) {
     return detail;
   }
+  if (Array.isArray(detail)) {
+    const firstDetailMessage = detail.find((entry) => {
+      if (typeof entry === 'string') {
+        return entry.trim();
+      }
+
+      if (!entry || typeof entry !== 'object') {
+        return false;
+      }
+
+      const message = Reflect.get(entry, 'msg');
+      return typeof message === 'string' && message.trim();
+    });
+
+    if (typeof firstDetailMessage === 'string' && firstDetailMessage.trim()) {
+      return firstDetailMessage;
+    }
+
+    if (firstDetailMessage && typeof firstDetailMessage === 'object') {
+      const message = Reflect.get(firstDetailMessage, 'msg');
+      if (typeof message === 'string' && message.trim()) {
+        return message;
+      }
+    }
+  }
 
   const message = Reflect.get(payload, 'message');
   if (typeof message === 'string' && message.trim()) {

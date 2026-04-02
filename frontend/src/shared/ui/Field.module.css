@@ -46,6 +46,12 @@
   background: #ffffff;
 }
 
+.control:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+  background: rgba(244, 247, 250, 0.96);
+}
+
 .textarea {
   min-height: 11rem;
   resize: vertical;

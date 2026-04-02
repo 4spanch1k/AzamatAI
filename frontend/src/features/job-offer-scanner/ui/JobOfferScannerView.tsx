@@ -27,8 +27,13 @@ export function JobOfferScannerView() {
   const [status, setStatus] = useState<ResultStatus>('idle');
   const [error, setError] = useState('');
   const [result, setResult] = useState<JobScanResult | null>(null);
+  const isLoading = status === 'loading';
 
   const scan = async (source: string) => {
+    if (isLoading) {
+      return;
+    }
+
     if (!source.trim()) {
       setError(copy.errorMessage);
       setStatus('idle');
@@ -85,6 +90,7 @@ export function JobOfferScannerView() {
                 placeholder={copy.fieldPlaceholder}
                 rows={13}
                 value={jobText}
+                disabled={isLoading}
                 onChange={(event) => setJobText(event.target.value)}
               />
 
@@ -97,6 +103,7 @@ export function JobOfferScannerView() {
                   <button
                     key={example.label}
                     className={`${sharedStyles.chip} ${jobText === example.value ? sharedStyles.chipActive : ''}`}
+                    disabled={isLoading}
                     onClick={() => setJobText(example.value)}
                     type="button"
                   >
@@ -118,8 +125,9 @@ export function JobOfferScannerView() {
               </div>
 
               <div className={sharedStyles.actionRow}>
-                <Button onClick={() => scan(jobText)}>{copy.scanButton}</Button>
+                <Button disabled={isLoading} onClick={() => scan(jobText)}>{copy.scanButton}</Button>
                 <Button
+                  disabled={isLoading}
                   variant="secondary"
                   onClick={() => {
                     setJobText(copy.demoOffer);

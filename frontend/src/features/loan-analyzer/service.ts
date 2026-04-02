@@ -1,4 +1,10 @@
 import { requestJson } from '@/shared/api/client';
+import {
+  normalizeNumber,
+  normalizeRiskLevel,
+  normalizeStringList,
+  normalizeText,
+} from '@/shared/api/normalizers';
 import type { RiskLevel } from '@/shared/types/risk';
 
 interface LoanAnalyzerApiResponse {
@@ -62,16 +68,19 @@ export async function analyzeLoan(payload: LoanAnalyzerPayload) {
       insurance: payload.insurance,
     },
   });
+  const totalPayment = normalizeNumber(response.total_payment);
+  const overpayment = normalizeNumber(response.overpayment);
+  const overpaymentPercent = normalizeNumber(response.overpayment_percent);
 
   return {
-    costBreakdown: buildCostBreakdown(payload, response.total_payment),
-    effectiveRate: calculateEffectiveRate(response.overpayment_percent, payload.months),
-    overpayment: response.overpayment,
-    overpaymentPercent: response.overpayment_percent,
-    recommendation: response.recommendation,
-    riskLevel: response.risk_level,
-    summary: response.summary,
-    totalPayment: response.total_payment,
-    warnings: response.warnings,
+    costBreakdown: buildCostBreakdown(payload, totalPayment),
+    effectiveRate: calculateEffectiveRate(overpaymentPercent, payload.months),
+    overpayment,
+    overpaymentPercent,
+    recommendation: normalizeText(response.recommendation),
+    riskLevel: normalizeRiskLevel(response.risk_level, 'medium'),
+    summary: normalizeText(response.summary),
+    totalPayment,
+    warnings: normalizeStringList(response.warnings),
   } satisfies LoanAnalysisResult;
 }

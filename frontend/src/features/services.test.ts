@@ -43,6 +43,32 @@ describe('feature services', () => {
     });
   });
 
+  it('trims document requests and falls back to safe normalized values', async () => {
+    mockedRequestJson.mockResolvedValue({
+      document_type: '  Official notice  ',
+      summary: '  Review the sender and deadline.  ',
+      actions: ['  Check attachments  ', '', 7],
+      deadline: '   ',
+      risk_level: 'unexpected',
+      warnings: ['  Verify the authority.  ', null],
+    });
+
+    const result = await analyzeDocument('  Administrative notice text...  ');
+
+    expect(requestJson).toHaveBeenCalledWith('/api/document-decode', {
+      method: 'POST',
+      body: { text: 'Administrative notice text...' },
+    });
+    expect(result).toEqual({
+      documentType: 'Official notice',
+      summary: 'Review the sender and deadline.',
+      actions: ['Check attachments'],
+      deadline: null,
+      riskLevel: 'medium',
+      warnings: ['Verify the authority.'],
+    });
+  });
+
   it('builds egov routes with frontend-friendly field names and inferred risk', async () => {
     mockedRequestJson.mockResolvedValue({
       goal: 'Get a residence certificate',
@@ -118,6 +144,43 @@ describe('feature services', () => {
       riskLevel: 'medium',
       explanation: 'The offer pushes private contact and lacks full clarity.',
       recommendation: 'Verify the employer before replying.',
+    });
+  });
+
+  it('normalizes egov and job payload edge cases without leaking malformed fields', async () => {
+    mockedRequestJson
+      .mockResolvedValueOnce({
+        goal: '  Open a service route  ',
+        required_documents: ['  ID card  ', 42],
+        steps: [{ title: '  Step 1  ', description: '  Do the thing.  ' }, { title: '', description: 'skip' }],
+        where_to_apply: '  eGov portal  ',
+        warnings: ['  Bring your IIN.  ', null],
+      })
+      .mockResolvedValueOnce({
+        flags: ['  Urgent private contact request  ', 1],
+        score: 'bad',
+        risk_level: 'unknown',
+        explanation: '  The offer lacks verification.  ',
+        recommendation: '  Verify the employer first.  ',
+      });
+
+    const egovResult = await buildEgovRoute('  Получить справку  ');
+    const jobResult = await scanJob('  Write in WhatsApp today for easy money.  ');
+
+    expect(egovResult).toEqual({
+      goal: 'Open a service route',
+      requiredDocuments: ['ID card'],
+      steps: [{ title: 'Step 1', description: 'Do the thing.' }],
+      whereToApply: 'eGov portal',
+      warnings: ['Bring your IIN.'],
+      riskLevel: 'low',
+    });
+    expect(jobResult).toEqual({
+      flags: ['Urgent private contact request'],
+      score: 0,
+      riskLevel: 'medium',
+      explanation: 'The offer lacks verification.',
+      recommendation: 'Verify the employer first.',
     });
   });
 });

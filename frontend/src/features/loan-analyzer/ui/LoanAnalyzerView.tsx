@@ -59,12 +59,17 @@ export function LoanAnalyzerView() {
   const [status, setStatus] = useState<ResultStatus>('idle');
   const [error, setError] = useState('');
   const [result, setResult] = useState<LoanAnalysisResult | null>(null);
+  const isLoading = status === 'loading';
 
   const updateField = (field: keyof LoanFormValues, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
   const analyze = async (values: LoanFormValues) => {
+    if (isLoading) {
+      return;
+    }
+
     if (!values.amount || !values.duration || !values.monthlyPayment) {
       setError(copy.errorMessage);
       setResult(null);
@@ -116,13 +121,13 @@ export function LoanAnalyzerView() {
           <Surface className={sharedStyles.panel}>
             <div className={sharedStyles.panelBody}>
               <div className={sharedStyles.gridTwo}>
-                <TextField hint={copy.labelHints.amount} label={copy.labels.amount} placeholder={copy.placeholders.amount} value={form.amount} onChange={(event) => updateField('amount', event.target.value)} />
-                <TextField hint={copy.labelHints.duration} label={copy.labels.duration} placeholder={copy.placeholders.duration} value={form.duration} onChange={(event) => updateField('duration', event.target.value)} />
-                <TextField hint={copy.labelHints.monthlyPayment} label={copy.labels.monthlyPayment} placeholder={copy.placeholders.monthlyPayment} value={form.monthlyPayment} onChange={(event) => updateField('monthlyPayment', event.target.value)} />
-                <TextField hint={copy.labelHints.fees} label={copy.labels.fees} placeholder={copy.placeholders.fees} value={form.fees} onChange={(event) => updateField('fees', event.target.value)} />
+                <TextField disabled={isLoading} hint={copy.labelHints.amount} label={copy.labels.amount} placeholder={copy.placeholders.amount} value={form.amount} onChange={(event) => updateField('amount', event.target.value)} />
+                <TextField disabled={isLoading} hint={copy.labelHints.duration} label={copy.labels.duration} placeholder={copy.placeholders.duration} value={form.duration} onChange={(event) => updateField('duration', event.target.value)} />
+                <TextField disabled={isLoading} hint={copy.labelHints.monthlyPayment} label={copy.labels.monthlyPayment} placeholder={copy.placeholders.monthlyPayment} value={form.monthlyPayment} onChange={(event) => updateField('monthlyPayment', event.target.value)} />
+                <TextField disabled={isLoading} hint={copy.labelHints.fees} label={copy.labels.fees} placeholder={copy.placeholders.fees} value={form.fees} onChange={(event) => updateField('fees', event.target.value)} />
               </div>
 
-              <TextField hint={copy.labelHints.insurance} label={copy.labels.insurance} placeholder={copy.placeholders.insurance} value={form.insurance} onChange={(event) => updateField('insurance', event.target.value)} />
+              <TextField disabled={isLoading} hint={copy.labelHints.insurance} label={copy.labels.insurance} placeholder={copy.placeholders.insurance} value={form.insurance} onChange={(event) => updateField('insurance', event.target.value)} />
 
               <div className={sharedStyles.helperCard}>
                 <strong>{copy.helperTitle}</strong>
@@ -149,6 +154,7 @@ export function LoanAnalyzerView() {
                     <button
                       key={presetKey}
                       className={`${sharedStyles.chip} ${isActive ? sharedStyles.chipActive : ''}`}
+                      disabled={isLoading}
                       onClick={() => setForm(presetForm)}
                       type="button"
                     >
@@ -159,8 +165,9 @@ export function LoanAnalyzerView() {
               </div>
 
               <div className={sharedStyles.actionRow}>
-                <Button onClick={() => analyze(form)}>{copy.analyzeButton}</Button>
+                <Button disabled={isLoading} onClick={() => analyze(form)}>{copy.analyzeButton}</Button>
                 <Button
+                  disabled={isLoading}
                   variant="secondary"
                   onClick={() => {
                     setForm(demoForm);

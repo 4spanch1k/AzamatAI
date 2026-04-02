@@ -48,6 +48,29 @@ describe('requestJson', () => {
       message: 'Input is too short.',
     });
   });
+
+  it('extracts the first validation message from FastAPI detail arrays', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            detail: [{ msg: 'String should have at least 20 characters.' }],
+          }),
+          {
+            status: 422,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+      ),
+    );
+
+    await expect(requestJson('/api/job-scan', { method: 'POST', body: { job_text: 'short text' } })).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 422,
+      message: 'String should have at least 20 characters.',
+    });
+  });
 });
 
 describe('getApiErrorMessage', () => {

@@ -1,4 +1,10 @@
 import { requestJson } from '@/shared/api/client';
+import {
+  normalizeNullableText,
+  normalizeRiskLevel,
+  normalizeStringList,
+  normalizeText,
+} from '@/shared/api/normalizers';
 import type { RiskLevel } from '@/shared/types/risk';
 
 interface DocumentDecodeApiResponse {
@@ -20,17 +26,18 @@ export interface DocumentAnalysisResult {
 }
 
 export async function analyzeDocument(text: string) {
+  const normalizedText = text.trim();
   const response = await requestJson<DocumentDecodeApiResponse>('/api/document-decode', {
     method: 'POST',
-    body: { text },
+    body: { text: normalizedText },
   });
 
   return {
-    actions: response.actions,
-    deadline: response.deadline,
-    documentType: response.document_type,
-    riskLevel: response.risk_level,
-    summary: response.summary,
-    warnings: response.warnings,
+    actions: normalizeStringList(response.actions),
+    deadline: normalizeNullableText(response.deadline),
+    documentType: normalizeText(response.document_type),
+    riskLevel: normalizeRiskLevel(response.risk_level, 'medium'),
+    summary: normalizeText(response.summary),
+    warnings: normalizeStringList(response.warnings),
   } satisfies DocumentAnalysisResult;
 }

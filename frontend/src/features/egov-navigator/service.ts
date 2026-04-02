@@ -1,4 +1,8 @@
 import { requestJson } from '@/shared/api/client';
+import {
+  normalizeStringList,
+  normalizeText,
+} from '@/shared/api/normalizers';
 import type { RiskLevel } from '@/shared/types/risk';
 
 interface EGovStepApiResponse {
@@ -42,18 +46,33 @@ function resolveRiskLevel(taskDescription: string) {
   return 'medium' as const;
 }
 
+function normalizeSteps(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [] as EGovStepResult[];
+  }
+
+  return value
+    .filter((step): step is EGovStepApiResponse => Boolean(step) && typeof step === 'object')
+    .map((step) => ({
+      title: normalizeText(step.title),
+      description: normalizeText(step.description),
+    }))
+    .filter((step) => step.title && step.description);
+}
+
 export async function buildEgovRoute(taskDescription: string) {
+  const normalizedTaskDescription = taskDescription.trim();
   const response = await requestJson<EGovNavigatorApiResponse>('/api/egov-navigator', {
     method: 'POST',
-    body: { task_description: taskDescription },
+    body: { task_description: normalizedTaskDescription },
   });
 
   return {
-    goal: response.goal,
-    requiredDocuments: response.required_documents,
-    riskLevel: resolveRiskLevel(taskDescription),
-    steps: response.steps,
-    warnings: response.warnings,
-    whereToApply: response.where_to_apply,
+    goal: normalizeText(response.goal),
+    requiredDocuments: normalizeStringList(response.required_documents),
+    riskLevel: resolveRiskLevel(normalizedTaskDescription),
+    steps: normalizeSteps(response.steps),
+    warnings: normalizeStringList(response.warnings),
+    whereToApply: normalizeText(response.where_to_apply),
   } satisfies EGovRouteResult;
 }

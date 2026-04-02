@@ -34,8 +34,13 @@ export function DocumentDecoderView() {
   const [status, setStatus] = useState<ResultStatus>('idle');
   const [error, setError] = useState('');
   const [result, setResult] = useState<DocumentAnalysisResult | null>(null);
+  const isLoading = status === 'loading';
 
   const analyze = async (source: string) => {
+    if (isLoading) {
+      return;
+    }
+
     if (!source.trim()) {
       setError(copy.errorMessage);
       setResult(null);
@@ -93,6 +98,7 @@ export function DocumentDecoderView() {
                   placeholder={copy.fieldPlaceholder}
                   rows={12}
                   value={documentText}
+                  disabled={isLoading}
                   onChange={(event) => setDocumentText(event.target.value)}
                 />
 
@@ -105,6 +111,7 @@ export function DocumentDecoderView() {
                     <button
                       key={example.label}
                       className={`${sharedStyles.chip} ${documentText === example.value ? sharedStyles.chipActive : ''}`}
+                      disabled={isLoading}
                       onClick={() => setDocumentText(example.value)}
                       type="button"
                     >
@@ -126,8 +133,9 @@ export function DocumentDecoderView() {
                 </div>
 
                 <div className={sharedStyles.actionRow}>
-                  <Button onClick={() => analyze(documentText)}>{copy.analyzeButton}</Button>
+                  <Button disabled={isLoading} onClick={() => analyze(documentText)}>{copy.analyzeButton}</Button>
                   <Button
+                    disabled={isLoading}
                     variant="secondary"
                     onClick={() => {
                       setDocumentText(copy.demoText);

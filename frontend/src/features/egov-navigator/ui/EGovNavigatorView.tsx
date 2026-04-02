@@ -27,8 +27,13 @@ export function EGovNavigatorView() {
   const [status, setStatus] = useState<ResultStatus>('idle');
   const [error, setError] = useState('');
   const [result, setResult] = useState<EGovRouteResult | null>(null);
+  const isLoading = status === 'loading';
 
   const run = async (source: string) => {
+    if (isLoading) {
+      return;
+    }
+
     if (!source.trim()) {
       setError(copy.errorMessage);
       setResult(null);
@@ -85,6 +90,7 @@ export function EGovNavigatorView() {
                 placeholder={copy.fieldPlaceholder}
                 rows={10}
                 value={goal}
+                disabled={isLoading}
                 onChange={(event) => setGoal(event.target.value)}
               />
 
@@ -97,6 +103,7 @@ export function EGovNavigatorView() {
                   <button
                     key={example}
                     className={`${sharedStyles.chip} ${goal === example ? sharedStyles.chipActive : ''}`}
+                    disabled={isLoading}
                     onClick={() => setGoal(example)}
                     type="button"
                   >
@@ -118,8 +125,9 @@ export function EGovNavigatorView() {
               </div>
 
               <div className={sharedStyles.actionRow}>
-                <Button onClick={() => run(goal)}>{copy.showStepsButton}</Button>
+                <Button disabled={isLoading} onClick={() => run(goal)}>{copy.showStepsButton}</Button>
                 <Button
+                  disabled={isLoading}
                   variant="secondary"
                   onClick={() => {
                     setGoal(copy.demoGoal);
