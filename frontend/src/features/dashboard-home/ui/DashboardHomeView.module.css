@@ -1,72 +1,13 @@
 .page {
   display: grid;
-  gap: var(--space-6);
+  gap: var(--space-8);
 }
 
-.hero {
+.topGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 22rem);
+  grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 22rem);
   gap: var(--space-6);
   align-items: start;
-}
-
-.heroCopy {
-  display: grid;
-  gap: var(--space-3);
-}
-
-.kicker,
-.sectionLabel {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--color-primary-strong);
-  font-size: 0.8rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.heroCopy h1,
-.sectionHeader h2 {
-  margin: 0;
-  font-family: var(--font-family-display);
-  letter-spacing: -0.05em;
-}
-
-.heroCopy h1 {
-  font-size: clamp(2.4rem, 5vw, 4rem);
-  line-height: 0.98;
-  max-width: 12ch;
-}
-
-.heroCopy p,
-.moduleBody p,
-.timelineItem p,
-.notes li,
-.heroAside p {
-  margin: 0;
-  color: var(--color-text-soft);
-}
-
-.heroAside,
-.activity,
-.moduleCard {
-  padding: var(--space-5);
-}
-
-.heroAside {
-  display: grid;
-  gap: var(--space-4);
-}
-
-.heroAside strong {
-  font-size: 1rem;
-}
-
-.quickActions {
-  display: grid;
-  gap: var(--space-3);
 }
 
 .section {
@@ -75,15 +16,40 @@
 }
 
 .sectionHeader {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+  max-width: 34rem;
 }
 
-.sectionHeader h2 {
-  font-size: 2rem;
-  line-height: 1;
+.sectionLabel,
+.onboardingLabel {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-primary-strong);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sectionCopy {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.sectionCopy h2 {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: 1.55rem;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  color: var(--color-text);
+}
+
+.sectionCopy p,
+.onboardingCopy p {
+  margin: 0;
+  color: var(--color-text-soft);
 }
 
 .moduleGrid {
@@ -92,104 +58,34 @@
   gap: var(--space-4);
 }
 
-.moduleCard {
-  display: grid;
-  gap: var(--space-4);
-  min-height: 15rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), var(--tone-soft));
-}
-
-.moduleIcon {
-  width: 3rem;
-  height: 3rem;
-  border-radius: 1rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.85);
-  color: var(--tone-solid);
-}
-
-.moduleBody {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.moduleBody strong {
-  font-size: 1.1rem;
-}
-
-.inlineAction {
-  margin-top: auto;
-  padding: 0;
-  border: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  background: transparent;
-  color: var(--color-text);
-  font-weight: 700;
-}
-
-.bottomGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
-}
-
-.panelHeader {
+.onboarding {
+  padding: var(--space-5);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
+  gap: var(--space-4);
 }
 
-.panelHeader small {
-  color: var(--color-text-muted);
-}
-
-.panelTitle {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-weight: 700;
-}
-
-.timeline {
-  display: grid;
-  gap: var(--space-3);
-}
-
-.timelineItem {
+.onboardingCopy {
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-4);
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.68);
-  border: 1px solid var(--color-border);
+  max-width: 42rem;
 }
 
-.timelineItem strong {
-  font-size: 0.95rem;
-}
-
-.timelineItem span {
-  color: var(--color-text-muted);
-  font-size: 0.8rem;
-}
-
-.notes {
-  margin: 0;
-  padding-left: 1.1rem;
-  display: grid;
-  gap: var(--space-3);
+.onboardingCopy strong {
+  font-size: 1rem;
+  line-height: 1.35;
+  color: var(--color-text);
 }
 
 @media (max-width: 1080px) {
-  .hero,
-  .bottomGrid,
+  .topGrid,
   .moduleGrid {
     grid-template-columns: 1fr;
+  }
+
+  .onboarding {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
