@@ -4,7 +4,7 @@ from typing import TypeVar
 
 from pydantic import BaseModel, ValidationError
 
-from app.providers.google_ai import ProviderError, generate_structured_response
+from app.providers.google_ai import ProviderError, generate_json_response
 from app.schemas.document import DocumentDecodeRequest, DocumentDecodeResponse
 from app.schemas.egov import EGovNavigatorRequest, EGovNavigatorResponse, EGovStep
 from app.schemas.job import JobScanRequest, JobScanResponse
@@ -23,30 +23,34 @@ class AIService:
     async def analyze_document(self, payload: DocumentDecodeRequest) -> DocumentDecodeResponse:
         signal_codes = detect_document_signal_codes(payload.text)
         fallback = self._build_document_fallback(signal_codes)
-        prompt = f"""
-        You are AzamatAI, a concise assistant for legal and document analysis in Kazakhstan.
-        Analyze the document text and respond as JSON that matches the schema exactly.
+        system_prompt = (
+            "You are AzamatAI, a concise assistant for legal and document analysis in Kazakhstan. "
+            "Return only a JSON object that matches the provided schema."
+        )
+        user_input = f"Signals: {', '.join(signal_codes)}\n\nDocument text:\n{payload.text}"
 
-        Signals: {", ".join(signal_codes)}
-        Document text:
-        {payload.text}
-        """.strip()
-
-        return await self._generate_or_fallback(prompt, DocumentDecodeResponse, fallback)
+        return await self._generate_or_fallback(
+            system_prompt=system_prompt,
+            user_input=user_input,
+            schema=DocumentDecodeResponse,
+            fallback=fallback,
+        )
 
     async def build_egov_route(self, payload: EGovNavigatorRequest) -> EGovNavigatorResponse:
         signal_codes = detect_egov_signal_codes(payload.goal)
         fallback = self._build_egov_fallback(payload.goal, signal_codes)
-        prompt = f"""
-        You are AzamatAI, an eGov guidance assistant for Kazakhstan.
-        Build a short, practical route for the user's goal and respond as JSON that matches the schema exactly.
+        system_prompt = (
+            "You are AzamatAI, an eGov guidance assistant for Kazakhstan. "
+            "Return only a practical JSON route that matches the provided schema."
+        )
+        user_input = f"Signals: {', '.join(signal_codes)}\n\nUser goal:\n{payload.goal}"
 
-        Signals: {", ".join(signal_codes)}
-        User goal:
-        {payload.goal}
-        """.strip()
-
-        return await self._generate_or_fallback(prompt, EGovNavigatorResponse, fallback)
+        return await self._generate_or_fallback(
+            system_prompt=system_prompt,
+            user_input=user_input,
+            schema=EGovNavigatorResponse,
+            fallback=fallback,
+        )
 
     async def analyze_loan(self, payload: LoanAnalyzerRequest) -> LoanAnalyzerResponse:
         metrics = calculate_loan_metrics(payload)
@@ -61,10 +65,11 @@ class AIService:
             warnings=metrics.warnings,
             breakdown=metrics.breakdown,
         )
-        prompt = f"""
-        You are AzamatAI, a financial assistant for loan review.
-        Use the provided calculation context and return a concise JSON response that matches the schema exactly.
-
+        system_prompt = (
+            "You are AzamatAI, a financial assistant for loan review. "
+            "Return only a concise JSON object that matches the provided schema."
+        )
+        user_input = f"""
         Amount: {payload.amount}
         Duration months: {payload.duration_months}
         Monthly payment: {payload.monthly_payment}
@@ -79,31 +84,40 @@ class AIService:
         risk_level={metrics.risk_level}
         """.strip()
 
-        return await self._generate_or_fallback(prompt, LoanAnalyzerResponse, fallback)
+        return await self._generate_or_fallback(
+            system_prompt=system_prompt,
+            user_input=user_input,
+            schema=LoanAnalyzerResponse,
+            fallback=fallback,
+        )
 
     async def scan_job_offer(self, payload: JobScanRequest) -> JobScanResponse:
         flag_codes = detect_job_flag_codes(payload.text)
         fallback = self._build_job_fallback(flag_codes)
-        prompt = f"""
-        You are AzamatAI, a job offer risk scanner.
-        Review the text, focus on fraud or manipulation signals, and respond as JSON that matches the schema exactly.
+        system_prompt = (
+            "You are AzamatAI, a job offer risk scanner. "
+            "Return only a JSON object with risk signals that matches the provided schema."
+        )
+        user_input = f"Signals: {', '.join(flag_codes) if flag_codes else 'none'}\n\nJob offer text:\n{payload.text}"
 
-        Signals: {", ".join(flag_codes) if flag_codes else "none"}
-        Job offer text:
-        {payload.text}
-        """.strip()
-
-        return await self._generate_or_fallback(prompt, JobScanResponse, fallback)
+        return await self._generate_or_fallback(
+            system_prompt=system_prompt,
+            user_input=user_input,
+            schema=JobScanResponse,
+            fallback=fallback,
+        )
 
     async def _generate_or_fallback(
         self,
-        prompt: str,
+        system_prompt: str,
+        user_input: str,
         schema: type[ResponseModel],
         fallback: ResponseModel,
     ) -> ResponseModel:
         try:
-            payload = await generate_structured_response(
-                prompt=prompt,
+            payload = await generate_json_response(
+                system_prompt=system_prompt,
+                user_input=user_input,
                 response_schema=schema.model_json_schema(by_alias=True),
             )
             return schema.model_validate(payload)
