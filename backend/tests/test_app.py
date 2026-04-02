@@ -108,15 +108,18 @@ class AppSmokeTests(unittest.TestCase):
         self.assertIn("score", body)
         self.assertEqual(body["risk_level"], "medium")
 
-    def test_provider_failure_returns_502(self) -> None:
+    def test_provider_failure_returns_demo_safe_fallback_payload(self) -> None:
         with patch("app.services.ai_service.generate_json_response", side_effect=ProviderError("boom")):
             response = self.client.post(
                 "/api/document-decode",
                 json={"text": "Please review this court claim notice with deadline and attached case details."},
             )
 
-        self.assertEqual(response.status_code, 502)
-        self.assertEqual(response.json()["detail"], "AI provider request failed.")
+        body = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(body["document_type"], "Court notice")
+        self.assertEqual(body["risk_level"], "high")
+        self.assertTrue(body["actions"])
 
     def test_document_decode_rejects_empty_text(self) -> None:
         response = self.client.post("/api/document-decode", json={"text": "   "})

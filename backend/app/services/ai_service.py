@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
-from app.providers.google_ai import ProviderResponseError, generate_json_response
+from app.providers.google_ai import ProviderError, ProviderResponseError, generate_json_response
 from app.schemas.document import DocumentDecodeRequest, DocumentDecodeResponse
 from app.schemas.egov import EGovNavigatorRequest, EGovNavigatorResponse, EGovStep
 from app.schemas.job import JobScanRequest, JobScanResponse
@@ -19,6 +20,7 @@ from app.services.analysis_service import (
 )
 
 ResponseModel = TypeVar("ResponseModel", bound=BaseModel)
+logger = logging.getLogger(__name__)
 
 DOCUMENT_SYSTEM_PROMPT = (
     "You are AzamatAI, an AI assistant for legal and document review in Kazakhstan. "
@@ -47,7 +49,8 @@ async def generate_document_analysis(text: str) -> dict[str, Any]:
     baseline = _build_document_baseline(signal_codes)
     user_input = _build_document_user_input(text, signal_codes, baseline)
 
-    return await _generate_structured_response(
+    return await _generate_structured_response_with_fallback(
+        module_name="document_decoder",
         schema=DocumentDecodeResponse,
         system_prompt=DOCUMENT_SYSTEM_PROMPT,
         user_input=user_input,
@@ -60,7 +63,8 @@ async def generate_egov_route(task_description: str) -> dict[str, Any]:
     baseline = _build_egov_baseline(task_description, signal_codes)
     user_input = _build_egov_user_input(task_description, signal_codes, baseline)
 
-    return await _generate_structured_response(
+    return await _generate_structured_response_with_fallback(
+        module_name="egov_navigator",
         schema=EGovNavigatorResponse,
         system_prompt=EGOV_SYSTEM_PROMPT,
         user_input=user_input,
@@ -72,7 +76,8 @@ async def generate_loan_explanation(calculated_data: dict[str, Any]) -> dict[str
     baseline = LoanAnalyzerResponse.model_validate(calculated_data)
     user_input = _build_loan_user_input(calculated_data, baseline)
 
-    return await _generate_structured_response(
+    return await _generate_structured_response_with_fallback(
+        module_name="loan_analyzer",
         schema=LoanAnalyzerResponse,
         system_prompt=LOAN_SYSTEM_PROMPT,
         user_input=user_input,
@@ -84,7 +89,8 @@ async def generate_job_explanation(job_text: str, flags_data: dict[str, Any]) ->
     baseline = JobScanResponse.model_validate(_build_job_baseline(flags_data))
     user_input = _build_job_user_input(job_text, flags_data, baseline)
 
-    return await _generate_structured_response(
+    return await _generate_structured_response_with_fallback(
+        module_name="job_offer_scanner",
         schema=JobScanResponse,
         system_prompt=JOB_SYSTEM_PROMPT,
         user_input=user_input,
@@ -180,6 +186,29 @@ async def _generate_structured_response(
         response_schema=schema.model_json_schema(),
     )
     return _normalize_response_payload(schema, provider_payload, baseline)
+
+
+async def _generate_structured_response_with_fallback(
+    module_name: str,
+    schema: type[ResponseModel],
+    system_prompt: str,
+    user_input: str,
+    baseline: ResponseModel,
+) -> dict[str, Any]:
+    try:
+        return await _generate_structured_response(
+            schema=schema,
+            system_prompt=system_prompt,
+            user_input=user_input,
+            baseline=baseline,
+        )
+    except ProviderError as exc:
+        logger.warning(
+            "Falling back to baseline response for %s because AI generation failed: %s",
+            module_name,
+            exc,
+        )
+        return baseline.model_dump()
 
 
 def _normalize_response_payload(
