@@ -10,10 +10,11 @@ from app.schemas.egov import EGovNavigatorRequest, EGovNavigatorResponse, EGovSt
 from app.schemas.job import JobScanRequest, JobScanResponse
 from app.schemas.loan import LoanAnalyzerRequest, LoanAnalyzerResponse
 from app.services.analysis_service import (
-    calculate_loan_metrics,
+    JobFlagScan,
+    analyze_loan_numbers,
     detect_document_signal_codes,
     detect_egov_signal_codes,
-    detect_job_flag_codes,
+    scan_job_flags,
 )
 
 ResponseModel = TypeVar("ResponseModel", bound=BaseModel)
@@ -53,17 +54,23 @@ class AIService:
         )
 
     async def analyze_loan(self, payload: LoanAnalyzerRequest) -> LoanAnalyzerResponse:
-        metrics = calculate_loan_metrics(payload)
+        metrics = analyze_loan_numbers(
+            loan_amount=payload.amount,
+            months=payload.duration_months,
+            monthly_payment=payload.monthly_payment,
+            fees=payload.fees,
+            insurance=payload.insurance,
+        )
         fallback = LoanAnalyzerResponse(
             total_payment=metrics.total_payment,
             overpayment=metrics.overpayment,
-            overpayment_percentage=metrics.overpayment_percentage,
-            effective_rate=metrics.effective_rate,
+            overpayment_percentage=metrics.overpayment_percent,
+            effective_rate=self._calculate_effective_rate(metrics.overpayment_percent, payload.duration_months),
             risk_level=metrics.risk_level,
-            risk_label=metrics.risk_label,
-            recommendation=metrics.recommendation,
-            warnings=metrics.warnings,
-            breakdown=metrics.breakdown,
+            risk_label=self._loan_risk_label(metrics.risk_level),
+            recommendation=self._loan_recommendation(metrics.risk_level),
+            warnings=self._loan_warnings(payload),
+            breakdown=self._loan_breakdown(payload, metrics.total_payment),
         )
         system_prompt = (
             "You are AzamatAI, a financial assistant for loan review. "
@@ -79,8 +86,8 @@ class AIService:
         Deterministic calculation context:
         total_payment={metrics.total_payment}
         overpayment={metrics.overpayment}
-        overpayment_percentage={metrics.overpayment_percentage}
-        effective_rate={metrics.effective_rate}
+        overpayment_percentage={metrics.overpayment_percent}
+        effective_rate={self._calculate_effective_rate(metrics.overpayment_percent, payload.duration_months)}
         risk_level={metrics.risk_level}
         """.strip()
 
@@ -92,13 +99,13 @@ class AIService:
         )
 
     async def scan_job_offer(self, payload: JobScanRequest) -> JobScanResponse:
-        flag_codes = detect_job_flag_codes(payload.text)
-        fallback = self._build_job_fallback(flag_codes)
+        scan_result = scan_job_flags(payload.text)
+        fallback = self._build_job_fallback(scan_result)
         system_prompt = (
             "You are AzamatAI, a job offer risk scanner. "
             "Return only a JSON object with risk signals that matches the provided schema."
         )
-        user_input = f"Signals: {', '.join(flag_codes) if flag_codes else 'none'}\n\nJob offer text:\n{payload.text}"
+        user_input = f"Signals: {', '.join(scan_result.flags) if scan_result.flags else 'none'}\n\nJob offer text:\n{payload.text}"
 
         return await self._generate_or_fallback(
             system_prompt=system_prompt,
@@ -202,16 +209,11 @@ class AIService:
             risk_level="medium",
         )
 
-    def _build_job_fallback(self, flag_codes: list[str]) -> JobScanResponse:
-        red_flags = [self._job_flag_label(code) for code in flag_codes]
-        high_risk = len(flag_codes) >= 3
-        risk_score = 8.4 if high_risk else 5.8 if red_flags else 2.9
-        risk_level = "high" if high_risk else "medium" if red_flags else "low"
-
-        if high_risk:
+    def _build_job_fallback(self, scan_result: JobFlagScan) -> JobScanResponse:
+        if scan_result.risk_level == "high":
             explanation = "The offer combines several scam-like patterns, including pressure and upfront obligations."
             recommendation = "Do not send money or personal documents until the employer is independently verified."
-        elif red_flags:
+        elif scan_result.risk_level == "medium":
             explanation = "The offer contains signals that need manual verification before you respond."
             recommendation = "Ask for a formal contract, company details, and a clear payment structure first."
         else:
@@ -219,18 +221,53 @@ class AIService:
             recommendation = "Confirm the company identity, contract terms, and payment process before accepting."
 
         return JobScanResponse(
-            risk_score=risk_score,
-            risk_level=risk_level,
-            red_flags=red_flags,
+            risk_score=float(scan_result.score),
+            risk_level=scan_result.risk_level,
+            red_flags=scan_result.flags,
             explanation=explanation,
             recommendation=recommendation,
         )
 
-    def _job_flag_label(self, code: str) -> str:
+    def _calculate_effective_rate(self, overpayment_percent: float, duration_months: int) -> float:
+        return round(overpayment_percent / max(duration_months / 12, 1), 2)
+
+    def _loan_risk_label(self, risk_level: str) -> str:
         labels = {
-            "upfront_payment": "The employer asks for money before the work starts.",
-            "no_experience": "The offer uses low-barrier wording that often appears in scam listings.",
-            "remote_only": "A fully remote promise should be verified against a real company profile.",
-            "urgent_transfer": "Pressure to act immediately is a common manipulation signal.",
+            "high": "High risk",
+            "medium": "Medium risk",
+            "low": "Low risk",
         }
-        return labels.get(code, "The offer contains a risk pattern that needs manual review.")
+        return labels[risk_level]
+
+    def _loan_recommendation(self, risk_level: str) -> str:
+        recommendations = {
+            "high": "The loan cost is heavy for this structure. Compare alternatives before signing.",
+            "medium": "The offer is workable, but fees and insurance should be negotiated or reduced.",
+            "low": "The offer looks relatively balanced if the contract has no hidden conditions.",
+        }
+        return recommendations[risk_level]
+
+    def _loan_warnings(self, payload: LoanAnalyzerRequest) -> list[str]:
+        warnings: list[str] = []
+
+        if payload.fees > 0:
+            warnings.append("Additional fees increase the real cost of the loan.")
+        if payload.insurance > 0:
+            warnings.append("Insurance should be checked for optionality and cancellation rules.")
+        if payload.monthly_payment > payload.amount / max(payload.duration_months, 1):
+            warnings.append("Monthly payment pressure is high compared with the borrowed amount.")
+        if not warnings:
+            warnings.append("Review early repayment and penalty clauses before signing.")
+
+        return warnings
+
+    def _loan_breakdown(self, payload: LoanAnalyzerRequest, total_payment: float) -> list[dict[str, float | str]]:
+        return [
+            {"label": "Principal", "value": payload.amount},
+            {
+                "label": "Interest",
+                "value": max(total_payment - payload.amount - payload.fees - payload.insurance, 0),
+            },
+            {"label": "Fees", "value": payload.fees},
+            {"label": "Insurance", "value": payload.insurance},
+        ]
